@@ -14,6 +14,15 @@ import type {
 } from "@/components/LogHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ToggleGroup } from "@/design-system/ToggleGroup";
+import { Skeleton } from "@/design-system/Skeleton";
+
+/** Bar heights (%) for the histogram skeleton, loosely mimicking a log volume shape. */
+const HISTOGRAM_SKELETON_BAR_HEIGHTS = [
+  30, 45, 35, 60, 50, 70, 55, 80, 65, 90, 75, 60, 85, 50, 40, 55, 35, 45, 30, 40,
+];
+
+/** Row count for the table skeleton. */
+const TABLE_SKELETON_ROW_COUNT = 12;
 
 const VIEW_OPTIONS = [
   { value: "flat" as const, label: "None", icon: List },
@@ -229,7 +238,7 @@ function HomeContent() {
     [router, searchParams],
   );
 
-  const { data: resourceLogs = [] } = useQuery({
+  const { data: resourceLogs = [], isPending } = useQuery({
     ...logsQuery,
     select: (data) => data?.resourceLogs ?? [],
   });
@@ -284,7 +293,13 @@ function HomeContent() {
         </div>
       </div>
 
-      {isGrouped ? (
+      {isPending ? (
+        <div className="mb-4 flex h-40 items-end gap-1.5 rounded-lg border border-panel-border bg-panel p-3">
+          {HISTOGRAM_SKELETON_BAR_HEIGHTS.map((heightPercent, index) => (
+            <Skeleton key={index} className="flex-1" style={{ height: `${heightPercent}%` }} />
+          ))}
+        </div>
+      ) : isGrouped ? (
         <LogHistogram
           variant="stacked"
           {...groupedBuckets}
@@ -295,7 +310,31 @@ function HomeContent() {
         <LogHistogram buckets={flatBuckets} bucketDurationMs={bucketDurationMs} className="mb-4" />
       )}
 
-      {isGrouped ? <LogRecordsTable groups={serviceGroups} /> : <LogRecordsTable logRecords={logRecords} />}
+      {isPending ? (
+        <div className="h-150 overflow-hidden rounded-lg border border-panel-border bg-panel">
+          <div className="flex items-center gap-3 border-b border-panel-border bg-panel-header px-3 py-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-4 w-28" />
+            <Skeleton className="h-4 flex-1" />
+          </div>
+          {Array.from({ length: TABLE_SKELETON_ROW_COUNT }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-3 border-b border-panel-border-subtle px-3 py-3"
+            >
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 flex-1" />
+            </div>
+          ))}
+        </div>
+      ) : isGrouped ? (
+        <LogRecordsTable groups={serviceGroups} />
+      ) : (
+        <LogRecordsTable logRecords={logRecords} />
+      )}
     </div>
   );
 }
