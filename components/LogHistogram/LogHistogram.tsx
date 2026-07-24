@@ -1,20 +1,8 @@
 "use client";
 
-import {
-  Bar,
-  BarChart,
-  Legend,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatBucketTick } from "./formatTick";
-import type {
-  LogHistogramProps,
-  StackedHistogramBucket,
-  StackedHistogramSeries,
-} from "./types";
+import type { LogHistogramProps, StackedHistogramBucket, StackedHistogramSeries } from "./types";
 
 const SERIES_COLORS = [
   "var(--series-1)",
@@ -41,13 +29,12 @@ function StackedTooltipContent({
 }: {
   active?: boolean;
   label?: string | number;
-  payload?: { dataKey?: string | number; payload?: StackedHistogramBucket }[];
+  payload?: { payload?: StackedHistogramBucket }[];
   bucketDurationMs: number;
   series: StackedHistogramSeries[];
 }) {
   if (!active || !payload || payload.length === 0) return null;
-
-  const bucket = payload[0]?.payload as StackedHistogramBucket | undefined;
+  const bucket = payload[0]?.payload;
   if (!bucket) return null;
 
   const rows = series
@@ -56,21 +43,24 @@ function StackedTooltipContent({
     .sort((a, b) => b.count - a.count);
 
   return (
-    <div className="rounded border bg-white p-2 text-xs shadow-sm dark:bg-neutral-900">
-      <div className="mb-1 font-medium">{formatBucketTick(Number(label), bucketDurationMs)}</div>
-      <ul className="space-y-0.5">
+    <div className="rounded-lg border border-panel-border bg-panel p-3 text-xs shadow-sm">
+      <div className="font-medium text-panel-muted">
+        {formatBucketTick(Number(label), bucketDurationMs)}
+      </div>
+      <hr className="my-1 border-panel-border-subtle" />
+      <ul className="mt-2 flex flex-col gap-1.5">
         {rows.map((row) => (
           <li key={row.key} className="flex items-center gap-2">
             <span
               className="inline-block h-2 w-2 shrink-0 rounded-full"
               style={{ backgroundColor: row.color }}
             />
-            <span className="flex-1">{row.label}</span>
-            <span className="tabular-nums">{row.count}</span>
+            <span className="flex-1 text-panel-muted">{row.label}</span>
+            <span className="tabular-nums text-panel-muted">{row.count}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-1 flex justify-between gap-4 border-t pt-1 font-semibold">
+      <div className="mt-2 flex justify-between gap-4 border-t border-panel-border-subtle pt-1 font-semibold text-panel-muted">
         <span>Total</span>
         <span className="tabular-nums">{bucket.total}</span>
       </div>
@@ -78,28 +68,59 @@ function StackedTooltipContent({
   );
 }
 
+function FlatTooltipContent({
+  label,
+  active,
+  payload,
+  bucketDurationMs,
+}: {
+  label?: string | number;
+  active?: boolean;
+  payload?: unknown[];
+  bucketDurationMs: number;
+}) {
+  if (!active || !payload || payload.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-panel-border bg-panel px-3 py-2 text-xs text-panel-muted shadow-sm">
+      {formatBucketTick(Number(label), bucketDurationMs)}
+    </div>
+  );
+}
+
+// Tooltip renders in a recharts wrapper positioned earlier in the DOM than the Legend's wrapper,
+// so without an explicit stacking order the legend (also position: absolute) paints on top of it.
+const TOOLTIP_WRAPPER_STYLE = { zIndex: 1 };
+const LEGEND_WRAPPER_STYLE = { fontSize: 12, color: "var(--panel-foreground-muted)" };
+
 export function LogHistogram(props: LogHistogramProps) {
   const { bucketDurationMs, height = 160, className } = props;
+  const axisTick = { fill: "var(--panel-foreground-muted)" };
 
-  if (props.variant === "stacked") {
-    const { buckets, series } = props;
-    return (
-      <div className={className} style={{ height }}>
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={buckets}>
+  return (
+    <div
+      className={`rounded-lg border border-panel-border bg-panel p-3 ${className ?? ""}`}
+      style={{ height }}
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        {props.variant === "stacked" ? (
+          <BarChart data={props.buckets}>
             <XAxis
               dataKey="time"
               tickFormatter={(time) => formatBucketTick(time, bucketDurationMs)}
               fontSize={12}
+              tick={axisTick}
+              stroke="var(--panel-border)"
             />
-            <YAxis allowDecimals={false} fontSize={12} width={32} />
+            <YAxis allowDecimals={false} fontSize={12} width={32} tick={axisTick} stroke="var(--panel-border)" />
             <Tooltip
               content={
-                <StackedTooltipContent bucketDurationMs={bucketDurationMs} series={series} />
+                <StackedTooltipContent bucketDurationMs={bucketDurationMs} series={props.series} />
               }
+              cursor={{ fill: "var(--panel-header-background)" }}
+              wrapperStyle={TOOLTIP_WRAPPER_STYLE}
             />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            {series.map((s, index) => (
+            <Legend wrapperStyle={LEGEND_WRAPPER_STYLE} iconType="circle" />
+            {props.series.map((s, index) => (
               <Bar
                 key={s.key}
                 dataKey={(bucket: StackedHistogramBucket) => bucket.counts[s.key] ?? 0}
@@ -109,27 +130,24 @@ export function LogHistogram(props: LogHistogramProps) {
               />
             ))}
           </BarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  const { buckets } = props;
-  return (
-    <div className={className} style={{ height }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={buckets}>
-          <XAxis
-            dataKey="time"
-            tickFormatter={(time) => formatBucketTick(time, bucketDurationMs)}
-            fontSize={12}
-          />
-          <YAxis allowDecimals={false} fontSize={12} width={32} />
-          <Tooltip
-            labelFormatter={(time) => formatBucketTick(Number(time), bucketDurationMs)}
-          />
-          <Bar dataKey="count" fill="currentColor" className="text-blue-500" />
-        </BarChart>
+        ) : (
+          <BarChart data={props.buckets}>
+            <XAxis
+              dataKey="time"
+              tickFormatter={(time) => formatBucketTick(time, bucketDurationMs)}
+              fontSize={12}
+              tick={axisTick}
+              stroke="var(--panel-border)"
+            />
+            <YAxis allowDecimals={false} fontSize={12} width={32} tick={axisTick} stroke="var(--panel-border)" />
+            <Tooltip
+              content={<FlatTooltipContent bucketDurationMs={bucketDurationMs} />}
+              cursor={{ fill: "var(--panel-header-background)" }}
+              wrapperStyle={TOOLTIP_WRAPPER_STYLE}
+            />
+            <Bar dataKey="count" fill="var(--series-1)" />
+          </BarChart>
+        )}
       </ResponsiveContainer>
     </div>
   );

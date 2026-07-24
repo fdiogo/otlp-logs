@@ -67,23 +67,23 @@ export const Empty: Story = {
   },
 };
 
-// LogHistogram's flat variant renders its bars with `className="text-blue-500"` and
-// `fill="currentColor"` — this only shows up correctly if Tailwind's stylesheet loaded.
+// LogHistogram wraps its chart in `className="rounded-lg ..."` — this only resolves to a
+// non-zero border radius if Tailwind's stylesheet loaded.
 export const CssCheck: Story = {
   args: {
     buckets: flatBuckets,
     bucketDurationMs: BUCKET_DURATION_MS,
   },
   play: async ({ canvasElement }) => {
-    const bar = await new Promise<Element>((resolve) => {
+    const panel = await new Promise<Element>((resolve) => {
       const check = () => {
-        const el = canvasElement.querySelector(".recharts-bar-rectangle path");
+        const el = canvasElement.querySelector(".recharts-responsive-container")?.parentElement;
         if (el) resolve(el);
         else requestAnimationFrame(check);
       };
       check();
     });
-    // text-blue-500 resolves to this oklch value under Tailwind v4 — fails if the stylesheet didn't load.
-    await expect(getComputedStyle(bar).color).toBe("oklch(0.623 0.214 259.815)");
+    // rounded-lg resolves to this value under Tailwind v4 — fails if the stylesheet didn't load.
+    await expect(getComputedStyle(panel).borderRadius).toBe("8px");
   },
 };

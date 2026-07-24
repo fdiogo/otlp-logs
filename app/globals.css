@@ -13,6 +13,14 @@
   --series-7: #4a3aa7;
   --series-8: #e34948;
   --series-other: #898781;
+
+  /* Shared "panel" look used by cards, tables and charts (see LogRecordsTable, LogHistogram). */
+  --panel-background: #ffffff;
+  --panel-header-background: oklch(0.984 0.003 247.858); /* slate-50 */
+  --panel-border: oklch(0% 0 0 / 10%); /* black/10 */
+  --panel-border-subtle: oklch(0% 0 0 / 5%); /* black/5 */
+  --panel-foreground-muted: oklch(0% 0 0 / 60%); /* black/60 */
+  --panel-foreground-subtle: oklch(0% 0 0 / 50%); /* black/50 */
 }
 
 @theme inline {
@@ -20,6 +28,13 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  --color-panel: var(--panel-background);
+  --color-panel-header: var(--panel-header-background);
+  --color-panel-border: var(--panel-border);
+  --color-panel-border-subtle: var(--panel-border-subtle);
+  --color-panel-muted: var(--panel-foreground-muted);
+  --color-panel-subtle: var(--panel-foreground-subtle);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -36,6 +51,13 @@
     --series-7: #9085e9;
     --series-8: #e66767;
     --series-other: #898781;
+
+    --panel-background: #171717;
+    --panel-header-background: #1f1f1f;
+    --panel-border: oklch(100% 0 0 / 12%); /* white/12 */
+    --panel-border-subtle: oklch(100% 0 0 / 6%); /* white/6 */
+    --panel-foreground-muted: oklch(100% 0 0 / 65%); /* white/65 */
+    --panel-foreground-subtle: oklch(100% 0 0 / 55%); /* white/55 */
   }
 }
 

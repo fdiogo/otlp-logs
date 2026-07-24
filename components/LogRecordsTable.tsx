@@ -56,17 +56,17 @@ const SEVERITY_BADGE: Record<string, string> = {
 
 function AttributesTable({ attributes }: { attributes: KeyValue[] }) {
   return (
-    <div className="rounded-lg border border-black/10 bg-white p-3">
-      <h4 className="text-xs font-medium text-black/60">Attributes</h4>
-      <hr className="border-slate-200 my-1" />
+    <div className="rounded-lg border border-panel-border bg-panel p-3">
+      <h4 className="text-xs font-medium text-panel-muted">Attributes</h4>
+      <hr className="border-panel-border-subtle my-1" />
       {attributes.length === 0 ? (
-        <p className="mt-2 text-xs italic text-black/50">No attributes</p>
+        <p className="mt-2 text-xs italic text-panel-subtle">No attributes</p>
       ) : (
         <div className="mt-2 flex flex-col gap-2">
           {attributes.map((attribute, index) => (
             <div key={attribute.key ?? index} className="font-mono text-xs">
-              <div className="text-black/50">{attribute.key}</div>
-              <div className="whitespace-pre-wrap break-all text-black/80">
+              <div className="text-panel-subtle">{attribute.key}</div>
+              <div className="whitespace-pre-wrap break-all text-panel-muted">
                 {renderAnyValue(attribute.value)}
               </div>
             </div>
@@ -106,14 +106,14 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
     virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
-    <div ref={scrollRef} className="h-[600px] overflow-auto rounded-lg border border-black/10 bg-white">
+    <div ref={scrollRef} className="h-[600px] overflow-auto rounded-lg border border-panel-border bg-panel">
       <table className="w-full table-fixed border-collapse text-left text-sm">
-        <thead className="sticky top-0 z-10 bg-slate-50">
+        <thead className="sticky top-0 z-10 bg-panel-header">
           <tr>
-            <th className="w-[20%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Resource</th>
-            <th className="w-[15%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Severity</th>
-            <th className="w-[20%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Time</th>
-            <th className="w-[45%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Body</th>
+            <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Resource</th>
+            <th className="w-[15%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Severity</th>
+            <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Time</th>
+            <th className="w-[45%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Body</th>
           </tr>
         </thead>
         <tbody>
@@ -132,14 +132,14 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
                 key={index}
                 ref={rowVirtualizer.measureElement}
                 data-index={index}
-                className="[&>td]:align-top [&>td]:border-b [&>td]:border-black/5 [&>td]:px-3 [&>td]:py-2"
+                className="[&>td]:align-top [&>td]:border-b [&>td]:border-panel-border-subtle [&>td]:px-3 [&>td]:py-2"
               >
                 <td colSpan={4} className="!p-0">
                   <div
                     onClick={() => toggleExpanded(index)}
-                    className="flex cursor-pointer items-start gap-0 hover:bg-slate-50"
+                    className="flex cursor-pointer items-start gap-0 hover:bg-panel-header"
                   >
-                    <div className="w-[20%] shrink-0 px-3 py-2 font-medium text-black/70">
+                    <div className="w-[20%] shrink-0 px-3 py-2 font-medium text-panel-muted">
                       {log.resourceLabel}
                     </div>
                     <div className="w-[15%] shrink-0 px-3 py-2">
@@ -147,13 +147,13 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
                         {severityLabel(log)}
                       </span>
                     </div>
-                    <div className="w-[20%] shrink-0 whitespace-nowrap px-3 py-2 font-mono text-xs text-black/60">
+                    <div className="w-[20%] shrink-0 whitespace-nowrap px-3 py-2 font-mono text-xs text-panel-muted">
                       <Time unixNano={log.timeUnixNano} />
                     </div>
                     <div className="min-w-0 flex-1 px-3 py-2">{renderAnyValue(log.body)}</div>
                   </div>
                   {isExpanded && (
-                    <div className="border-t border-black/5 bg-slate-50 px-3 py-2">
+                    <div className="border-t border-panel-border-subtle bg-panel-header px-3 py-2">
                       <AttributesTable attributes={log.attributes ?? []} />
                     </div>
                   )}
