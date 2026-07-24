@@ -1,14 +1,137 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
 import { LogHistogram } from "./LogHistogram";
-import type { LogHistogramBucket, StackedHistogramBucket } from "./types";
-import { bucketLogRecords } from "@/queries/bucketLogRecords";
-import { bucketLogRecordsByService } from "@/queries/bucketLogRecordsByService";
-import { computeBucketDuration } from "@/queries/computeBucketDuration";
-import type { ServiceGroup } from "@/queries/serviceGroup";
+import type { LogHistogramBucket, StackedHistogramBucket, StackedHistogramSeries } from "./LogHistogram";
 
 const BUCKET_DURATION_MS = 60_000;
 const BASE_TIME = Date.UTC(2024, 3, 1, 12, 0, 0);
+
+/**
+ * Ladder of "nice" bucket widths, in ms, from finest to coarsest.
+ * 1/5/10/15/30 progression per unit (seconds, minutes, hours), extended
+ * with day-scale steps for multi-day spans.
+ */
+const BUCKET_DURATION_LADDER_MS = [
+  1_000,
+  5_000,
+  10_000,
+  15_000,
+  30_000,
+  60_000,
+  5 * 60_000,
+  10 * 60_000,
+  15 * 60_000,
+  30 * 60_000,
+  60 * 60_000,
+  5 * 60 * 60_000,
+  10 * 60 * 60_000,
+  15 * 60 * 60_000,
+  24 * 60 * 60_000,
+  7 * 24 * 60 * 60_000,
+  30 * 24 * 60 * 60_000,
+] as const;
+
+/** Upper bound on the number of buckets a chart should render. */
+const MAX_BUCKET_COUNT = 75;
+
+/**
+ * Picks the finest bucket width from `BUCKET_DURATION_LADDER_MS` that keeps
+ * the number of buckets spanning [minTimeMs, maxTimeMs] at or below
+ * `MAX_BUCKET_COUNT`. Falls back to the coarsest ladder step for spans wider
+ * than the ladder covers, and to the finest step for a zero-width span.
+ */
+function computeBucketDuration(minTimeMs: number, maxTimeMs: number): number {
+  const span = Math.max(0, maxTimeMs - minTimeMs);
+  if (span === 0) return BUCKET_DURATION_LADDER_MS[0];
+
+  const fitting = BUCKET_DURATION_LADDER_MS.find(
+    (candidate) => span / candidate <= MAX_BUCKET_COUNT,
+  );
+  return fitting ?? BUCKET_DURATION_LADDER_MS[BUCKET_DURATION_LADDER_MS.length - 1];
+}
+
+function bucketLogRecords(
+  logRecords: { timeUnixNano?: string | number | null }[],
+  bucketDurationMs: number,
+): LogHistogramBucket[] {
+  const counts = new Map<number, number>();
+
+  for (const record of logRecords) {
+    if (record.timeUnixNano == null) continue;
+    const timeMs = Number(BigInt(record.timeUnixNano) / BigInt(1_000_000));
+    const bucketStart = Math.floor(timeMs / bucketDurationMs) * bucketDurationMs;
+    counts.set(bucketStart, (counts.get(bucketStart) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([time, count]) => ({ time, count }));
+}
+
+interface ServiceGroup {
+  key: string;
+  label: string;
+  logRecords: { timeUnixNano?: string | number | null }[];
+}
+
+/** Histogram-only: stacks the 8 highest-volume Service Groups, folds the rest into "Other". */
+const TOP_N = 8;
+const OTHER_SERIES_KEY = "__other__";
+
+/**
+ * Buckets Service Groups into a stacked time series. Ranking of which
+ * services get their own segment is computed once, globally, over total
+ * volume (not per bucket), so a series' color and stack position stay
+ * stable across every bucket. `serviceGroups` must already be sorted
+ * descending by count (as returned by `groupLogRecordsByService`).
+ */
+function bucketLogRecordsByService(
+  serviceGroups: ServiceGroup[],
+  bucketDurationMs: number,
+): { buckets: StackedHistogramBucket[]; series: StackedHistogramSeries[] } {
+  const topGroups = serviceGroups.slice(0, TOP_N);
+  const otherGroups = serviceGroups.slice(TOP_N);
+
+  const series: StackedHistogramSeries[] = topGroups.map((group) => ({
+    key: group.key,
+    label: group.label,
+  }));
+  if (otherGroups.length > 0) {
+    series.push({ key: OTHER_SERIES_KEY, label: "Other" });
+  }
+
+  const bucketCounts = new Map<number, Record<string, number>>();
+
+  function addRecord(key: string, timeUnixNano: string | number | null | undefined) {
+    if (timeUnixNano == null) return;
+    const timeMs = Number(BigInt(timeUnixNano) / BigInt(1_000_000));
+    const bucketStart = Math.floor(timeMs / bucketDurationMs) * bucketDurationMs;
+    const counts = bucketCounts.get(bucketStart) ?? {};
+    counts[key] = (counts[key] ?? 0) + 1;
+    bucketCounts.set(bucketStart, counts);
+  }
+
+  for (const group of topGroups) {
+    for (const record of group.logRecords) {
+      addRecord(group.key, record.timeUnixNano);
+    }
+  }
+  for (const group of otherGroups) {
+    for (const record of group.logRecords) {
+      addRecord(OTHER_SERIES_KEY, record.timeUnixNano);
+    }
+  }
+
+  const buckets: StackedHistogramBucket[] = [...bucketCounts.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([time, counts]) => ({
+      time,
+      counts,
+      total: Object.values(counts).reduce((sum, count) => sum + count, 0),
+    }));
+
+  return { buckets, series };
+}
 
 function flatBucket(minute: number, count: number): LogHistogramBucket {
   return { time: BASE_TIME + minute * BUCKET_DURATION_MS, count };

@@ -1,5 +1,61 @@
-import { ExportLogsServiceRequest } from "@/app/generated/opentelemetry/proto/collector/logs/v1/logs_service";
 import { queryOptions } from "@tanstack/react-query";
+
+export interface KeyValue {
+  key?: string;
+  value?: AnyValue;
+}
+
+export interface AnyValue {
+  stringValue?: string;
+  boolValue?: boolean;
+  intValue?: string;
+  doubleValue?: number;
+  arrayValue?: { values?: AnyValue[] };
+  kvlistValue?: { values?: KeyValue[] };
+  bytesValue?: Uint8Array;
+}
+
+export interface InstrumentationScope {
+  name?: string;
+  version?: string;
+  attributes?: KeyValue[];
+  droppedAttributesCount?: number;
+}
+
+export interface Resource {
+  attributes?: KeyValue[];
+  droppedAttributesCount?: number;
+}
+
+export interface LogRecord {
+  timeUnixNano?: string;
+  observedTimeUnixNano?: string;
+  severityNumber?: number;
+  severityText?: string;
+  body?: AnyValue;
+  attributes?: KeyValue[];
+  droppedAttributesCount?: number;
+  flags?: number;
+  traceId?: Uint8Array;
+  spanId?: Uint8Array;
+  eventName?: string;
+}
+
+export interface ScopeLogs {
+  scope?: InstrumentationScope;
+  logRecords?: LogRecord[];
+  schemaUrl?: string;
+}
+
+export interface ResourceLogs {
+  resource?: Resource;
+  scopeLogs?: ScopeLogs[];
+  schemaUrl?: string;
+}
+
+export interface ExportLogsServiceRequest {
+  resourceLogs?: ResourceLogs[];
+}
 
 export const logsQuery = queryOptions({
   queryKey: ["logs"],

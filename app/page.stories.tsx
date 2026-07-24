@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Home from "./page";
-import type { ExportLogsServiceRequest } from "@/app/generated/opentelemetry/proto/collector/logs/v1/logs_service";
-import type { LogRecord } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
+import type { ExportLogsServiceRequest, LogRecord } from "@/queries/logsQuery";
 
 const BASE_TIME_MS = Date.UTC(2024, 3, 1, 12, 0, 0);
 const MINUTE_NS = BigInt(60_000_000_000);

@@ -2,13 +2,18 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { AnyValue, KeyValue } from "@/app/generated/opentelemetry/proto/common/v1/common";
-import type { LogRecord } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
-import type { ServiceGroup } from "@/queries/serviceGroup";
+import type { AnyValue, KeyValue, LogRecord } from "@/queries/logsQuery";
 import { Time } from "@/design-system/Time";
 import { Badge } from "@/design-system/Badge";
 
 export type LogRecordWithResource = LogRecord & { resourceLabel?: string };
+
+export interface ServiceGroup {
+  /** Stable identity: service.namespace + service.name, namespace omitted when unset. */
+  key: string;
+  label: string;
+  logRecords: LogRecord[];
+}
 
 type LogRecordsTableProps = { logRecords: LogRecordWithResource[] } | { groups: ServiceGroup[] };
 
