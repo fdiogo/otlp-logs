@@ -134,7 +134,7 @@ function HistogramTooltipContent({
       <div className="flex items-baseline gap-1 font-medium text-panel-muted">
         <Time unixNano={String(bucketStartMs * 1_000_000)} />
         <span>–</span>
-        <Time unixNano={String(bucketEndMs * 1_000_000)} />
+        <Time unixNano={String(bucketEndMs * 1_000_000)} timeOnly />
       </div>
       <hr className="my-1 border-panel-border-subtle" />
       <ul className="mt-2 flex flex-col gap-1.5">

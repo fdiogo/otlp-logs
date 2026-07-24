@@ -234,9 +234,9 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
       <Table>
         <Table.Header className="sticky top-0 z-10 bg-panel-header">
           <Table.Row>
-            {!grouped && <Table.Head className="w-px whitespace-nowrap">Resource</Table.Head>}
-            <Table.Head className="w-px whitespace-nowrap">Severity</Table.Head>
-            <Table.Head className="w-px whitespace-nowrap">Time</Table.Head>
+            {!grouped && <Table.Head className="w-px min-w-50 whitespace-nowrap">Resource</Table.Head>}
+            <Table.Head className="w-px min-w-30 whitespace-nowrap">Severity</Table.Head>
+            <Table.Head className="w-px min-w-44 whitespace-nowrap">Time</Table.Head>
             <Table.Head>Body</Table.Head>
           </Table.Row>
         </Table.Header>
