@@ -38,6 +38,34 @@ function attributeValueType(value: AnyValue | undefined): string {
   return "empty";
 }
 
+function severityRank(log: LogRecordWithResource): number {
+  if (typeof log.severityNumber === "number") return log.severityNumber;
+  const text = log.severityText?.toUpperCase() ?? "";
+  if (text.startsWith("ERROR") || text.startsWith("FATAL")) return 17;
+  if (text.startsWith("WARN")) return 13;
+  if (text.startsWith("DEBUG")) return 5;
+  return 9;
+}
+
+function severityLabel(log: LogRecordWithResource): string {
+  return log.severityText ?? String(log.severityNumber ?? "");
+}
+
+function severityTone(log: LogRecordWithResource): "error" | "warn" | "debug" | "info" {
+  const rank = severityRank(log);
+  if (rank >= 17) return "error";
+  if (rank >= 13) return "warn";
+  if (rank < 9) return "debug";
+  return "info";
+}
+
+const SEVERITY_BADGE: Record<string, string> = {
+  error: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20",
+  warn: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
+  debug: "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20",
+  info: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
+};
+
 function AttributesTable({ attributes }: { attributes: KeyValue[] }) {
   if (attributes.length === 0) {
     return <p className="text-xs italic text-black/50">No attributes</p>;
@@ -87,7 +115,7 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
   const rowVirtualizer = useVirtualizer({
     count: logRecords.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 37,
+    estimateSize: () => 41,
     overscan: 10,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -96,14 +124,14 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
     virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
-    <div ref={scrollRef} className="h-[600px] overflow-auto">
-      <table className="w-full border-collapse text-left text-sm">
-        <thead>
+    <div ref={scrollRef} className="h-[600px] overflow-auto rounded-lg border border-black/10 bg-white">
+      <table className="w-full table-fixed border-collapse text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-slate-50">
           <tr>
-            <th className="border-b p-2">Resource</th>
-            <th className="border-b p-2">Severity</th>
-            <th className="border-b p-2">Time</th>
-            <th className="border-b p-2">Body</th>
+            <th className="w-[20%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Resource</th>
+            <th className="w-[15%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Severity</th>
+            <th className="w-[20%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Time</th>
+            <th className="w-[45%] border-b border-black/10 px-3 py-2 font-medium text-black/60">Body</th>
           </tr>
         </thead>
         <tbody>
@@ -115,23 +143,35 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
           {virtualRows.map((virtualRow) => {
             const index = virtualRow.index;
             const log = logRecords[index];
+            const tone = severityTone(log);
+            const isExpanded = expanded.has(index);
             return (
               <tr
                 key={index}
                 ref={rowVirtualizer.measureElement}
                 data-index={index}
-                onClick={() => toggleExpanded(index)}
-                className="cursor-pointer hover:bg-black/5 [&>td]:align-top"
+                className="[&>td]:align-top [&>td]:border-b [&>td]:border-black/5 [&>td]:px-3 [&>td]:py-2"
               >
-                <td className="border-b p-2">{log.resourceLabel}</td>
-                <td className="border-b p-2">{log.severityText ?? log.severityNumber}</td>
-                <td className="border-b p-2">
-                  <Time unixNano={log.timeUnixNano} />
-                </td>
-                <td className="border-b p-2">
-                  {renderAnyValue(log.body)}
-                  {expanded.has(index) && (
-                    <div className="mt-2 bg-black/2 p-2">
+                <td colSpan={4} className="!p-0">
+                  <div
+                    onClick={() => toggleExpanded(index)}
+                    className="flex cursor-pointer items-start gap-0 hover:bg-slate-50"
+                  >
+                    <div className="w-[20%] shrink-0 px-3 py-2 font-medium text-black/70">
+                      {log.resourceLabel}
+                    </div>
+                    <div className="w-[15%] shrink-0 px-3 py-2">
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_BADGE[tone]}`}>
+                        {severityLabel(log)}
+                      </span>
+                    </div>
+                    <div className="w-[20%] shrink-0 whitespace-nowrap px-3 py-2 font-mono text-xs text-black/60">
+                      <Time unixNano={log.timeUnixNano} />
+                    </div>
+                    <div className="min-w-0 flex-1 px-3 py-2">{renderAnyValue(log.body)}</div>
+                  </div>
+                  {isExpanded && (
+                    <div className="border-t border-black/5 bg-slate-50 px-3 py-2">
                       <AttributesTable attributes={log.attributes ?? []} />
                     </div>
                   )}
