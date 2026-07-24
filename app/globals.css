@@ -4,15 +4,15 @@
   --background: #ffffff;
   --foreground: #171717;
 
-  --series-1: #2a78d6;
-  --series-2: #eb6834;
-  --series-3: #1baf7a;
-  --series-4: #eda100;
-  --series-5: #e87ba4;
-  --series-6: #008300;
-  --series-7: #4a3aa7;
-  --series-8: #e34948;
-  --series-other: #898781;
+  --series-1: color-mix(in oklch, #2a78d6 85%, white);
+  --series-2: color-mix(in oklch, #eb6834 85%, white);
+  --series-3: color-mix(in oklch, #1baf7a 85%, white);
+  --series-4: color-mix(in oklch, #eda100 85%, white);
+  --series-5: color-mix(in oklch, #e87ba4 85%, white);
+  --series-6: color-mix(in oklch, #008300 85%, white);
+  --series-7: color-mix(in oklch, #4a3aa7 85%, white);
+  --series-8: color-mix(in oklch, #e34948 85%, white);
+  --series-other: color-mix(in oklch, #898781 85%, white);
 
   /* Shared "panel" look used by cards, tables and charts (see LogRecordsTable, LogHistogram). */
   --panel-background: #ffffff;
@@ -42,15 +42,15 @@
     --background: #0a0a0a;
     --foreground: #ededed;
 
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-7: #9085e9;
-    --series-8: #e66767;
-    --series-other: #898781;
+    --series-1: color-mix(in oklch, #3987e5 90%, white);
+    --series-2: color-mix(in oklch, #d95926 90%, white);
+    --series-3: color-mix(in oklch, #199e70 90%, white);
+    --series-4: color-mix(in oklch, #c98500 90%, white);
+    --series-5: color-mix(in oklch, #d55181 90%, white);
+    --series-6: color-mix(in oklch, #008300 90%, white);
+    --series-7: color-mix(in oklch, #9085e9 90%, white);
+    --series-8: color-mix(in oklch, #e66767 90%, white);
+    --series-other: color-mix(in oklch, #898781 90%, white);
 
     --panel-background: #171717;
     --panel-header-background: #1f1f1f;
