@@ -11,7 +11,6 @@ import { groupLogRecordsByService } from "@/queries/serviceGroup";
 import { getResourceLabel } from "@/queries/resourceLabel";
 import { LogHistogram } from "@/components/LogHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
-import { ServiceGroupSection } from "@/components/ServiceGroupSection";
 import { Checkbox } from "@/components/Checkbox";
 
 export default function Home() {
@@ -98,15 +97,7 @@ function HomeContent() {
         <LogHistogram buckets={flatBuckets} bucketDurationMs={bucketDurationMs} className="mb-4" />
       )}
 
-      {isGrouped ? (
-        <div>
-          {serviceGroups.map((group) => (
-            <ServiceGroupSection key={group.key} group={group} />
-          ))}
-        </div>
-      ) : (
-        <LogRecordsTable logRecords={logRecords} />
-      )}
+      {isGrouped ? <LogRecordsTable groups={serviceGroups} /> : <LogRecordsTable logRecords={logRecords} />}
     </div>
   );
 }

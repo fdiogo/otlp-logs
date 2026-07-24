@@ -9,7 +9,7 @@ The default display mode — log records rendered as a single ungrouped table, a
 _Avoid_: ungrouped view, default view
 
 **Grouped View**:
-The display mode, entered via the `groupBy=service` URL search param, where log records are partitioned into Service Groups in the table, and the histogram is split into per-Service-Group stacked segments.
+The display mode, entered via the `groupBy=service` URL search param, where log records are partitioned into Service Groups in the table, and the histogram is split into per-Service-Group stacked segments. The table stays a single virtualized row list — Service Groups are rendered as header rows interleaved with log rows in that same list, not as separate tables per group. Groups are collapsed by default, so the initial row list stays bounded regardless of how many services are in the dataset; the per-row Resource column is hidden in this mode since the group header already identifies the service.
 _Avoid_: group mode, service view
 
 **Service Group**:

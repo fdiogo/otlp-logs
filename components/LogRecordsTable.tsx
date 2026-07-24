@@ -1,12 +1,23 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AnyValue, KeyValue } from "@/app/generated/opentelemetry/proto/common/v1/common";
 import type { LogRecord } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
+import type { ServiceGroup } from "@/queries/serviceGroup";
 import { Time } from "./Time";
 
 export type LogRecordWithResource = LogRecord & { resourceLabel?: string };
+
+type LogRecordsTableProps = { logRecords: LogRecordWithResource[] } | { groups: ServiceGroup[] };
+
+function isGrouped(props: LogRecordsTableProps): props is { groups: ServiceGroup[] } {
+  return "groups" in props;
+}
+
+type Row =
+  | { type: "header"; rowKey: string; group: ServiceGroup; collapsed: boolean }
+  | { type: "log"; rowKey: string; log: LogRecordWithResource };
 
 function renderAnyValue(value: AnyValue | undefined): string {
   if (value === undefined) return "";
@@ -77,27 +88,71 @@ function AttributesTable({ attributes }: { attributes: KeyValue[] }) {
   );
 }
 
-export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResource[] }) {
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
+export function LogRecordsTable(props: LogRecordsTableProps) {
+  const grouped = isGrouped(props);
+  const groups = grouped ? props.groups : undefined;
+  const logRecords = grouped ? undefined : props.logRecords;
 
-  function toggleExpanded(index: number) {
-    setExpanded((prev) => {
+  // Groups start collapsed so the initial row list stays bounded regardless of dataset size.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(
+    () => new Set(groups?.map((group) => group.key)),
+  );
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+
+  function toggleGroup(key: string) {
+    setCollapsedGroups((prev) => {
       const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
+      if (next.has(key)) {
+        next.delete(key);
       } else {
-        next.add(index);
+        next.add(key);
       }
       return next;
     });
   }
 
+  function toggleExpanded(rowKey: string) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(rowKey)) {
+        next.delete(rowKey);
+      } else {
+        next.add(rowKey);
+      }
+      return next;
+    });
+  }
+
+  const rows: Row[] = useMemo(() => {
+    if (!groups) {
+      return (logRecords ?? []).map((log, index) => ({ type: "log" as const, rowKey: `log:${index}`, log }));
+    }
+    const result: Row[] = [];
+    for (const group of groups) {
+      const collapsed = collapsedGroups.has(group.key);
+      result.push({ type: "header", rowKey: `header:${group.key}`, group, collapsed });
+      if (!collapsed) {
+        for (const [index, log] of group.logRecords.entries()) {
+          result.push({
+            type: "log",
+            rowKey: `log:${group.key}:${index}`,
+            log: { ...log, resourceLabel: group.label },
+          });
+        }
+      }
+    }
+    return result;
+  }, [groups, logRecords, collapsedGroups]);
+
+  const columnCount = grouped ? 3 : 4;
+
   const scrollRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line react-hooks/incompatible-library
   const rowVirtualizer = useVirtualizer({
-    count: logRecords.length,
+    count: rows.length,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => 41,
+    getItemKey: (index) => rows[index].rowKey,
+    estimateSize: (index) => (rows[index]?.type === "header" ? 37 : 41),
     overscan: 10,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -110,38 +165,66 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
       <table className="w-full table-fixed border-collapse text-left text-sm">
         <thead className="sticky top-0 z-10 bg-panel-header">
           <tr>
-            <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Resource</th>
+            {!grouped && (
+              <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
+                Resource
+              </th>
+            )}
             <th className="w-[15%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Severity</th>
             <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Time</th>
-            <th className="w-[45%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Body</th>
+            <th
+              className={`${grouped ? "w-[65%]" : "w-[45%]"} border-b border-panel-border px-3 py-2 font-medium text-panel-muted`}
+            >
+              Body
+            </th>
           </tr>
         </thead>
         <tbody>
           {paddingTop > 0 && (
             <tr>
-              <td colSpan={4} style={{ height: paddingTop }} />
+              <td colSpan={columnCount} style={{ height: paddingTop }} />
             </tr>
           )}
           {virtualRows.map((virtualRow) => {
-            const index = virtualRow.index;
-            const log = logRecords[index];
+            const row = rows[virtualRow.index];
+
+            if (row.type === "header") {
+              return (
+                <tr key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
+                  <td colSpan={columnCount} className="!p-0">
+                    <button
+                      onClick={() => toggleGroup(row.group.key)}
+                      className="flex w-full items-center gap-2 border-b border-panel-border bg-panel-header px-3 py-2 text-left text-sm font-medium hover:bg-panel-border-subtle"
+                    >
+                      <span className="w-3 shrink-0">{row.collapsed ? "▸" : "▾"}</span>
+                      <span>{row.group.label}</span>
+                      <span className="text-panel-subtle">({row.group.logRecords.length})</span>
+                    </button>
+                  </td>
+                </tr>
+              );
+            }
+
+            const log = row.log;
             const tone = severityTone(log);
-            const isExpanded = expanded.has(index);
+            const isExpanded = expanded.has(row.rowKey);
             return (
               <tr
-                key={index}
+                key={row.rowKey}
                 ref={rowVirtualizer.measureElement}
-                data-index={index}
+                data-index={virtualRow.index}
                 className="[&>td]:align-top [&>td]:border-b [&>td]:border-panel-border-subtle [&>td]:px-3 [&>td]:py-2"
               >
-                <td colSpan={4} className="!p-0">
+                <td colSpan={columnCount} className="!p-0">
                   <div
-                    onClick={() => toggleExpanded(index)}
+                    onClick={() => toggleExpanded(row.rowKey)}
                     className="flex cursor-pointer items-start gap-0 hover:bg-panel-header"
                   >
-                    <div className="w-[20%] shrink-0 px-3 py-2 font-medium text-panel-muted">
-                      {log.resourceLabel}
-                    </div>
+                    {!grouped && (
+                      <div className="w-[20%] shrink-0 px-3 py-2 font-medium text-panel-muted">
+                        {log.resourceLabel}
+                      </div>
+                    )}
                     <div className="w-[15%] shrink-0 px-3 py-2">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_BADGE[tone]}`}>
                         {severityLabel(log)}
@@ -163,7 +246,7 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
           })}
           {paddingBottom > 0 && (
             <tr>
-              <td colSpan={4} style={{ height: paddingBottom }} />
+              <td colSpan={columnCount} style={{ height: paddingBottom }} />
             </tr>
           )}
         </tbody>

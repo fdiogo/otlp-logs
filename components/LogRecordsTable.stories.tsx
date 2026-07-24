@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
 import { LogRecordsTable, type LogRecordWithResource } from "./LogRecordsTable";
+import type { ServiceGroup } from "@/queries/serviceGroup";
 import manyLogRecords from "./fixtures/logRecords.json";
 
 function logRecord(overrides: Partial<LogRecordWithResource>): LogRecordWithResource {
@@ -76,4 +77,37 @@ export const ExpandRow: Story = {
 // rendering performance and layout with thousands of rows.
 export const ManyRows: Story = {
   args: { logRecords: manyLogRecords as LogRecordWithResource[] },
+};
+
+const groups: ServiceGroup[] = [
+  {
+    key: "checkout",
+    label: "checkout",
+    logRecords: logRecords.filter((log) => log.resourceLabel === "checkout"),
+  },
+  {
+    key: "auth",
+    label: "auth",
+    logRecords: logRecords.filter((log) => log.resourceLabel === "auth"),
+  },
+];
+
+// Groups start collapsed: only header rows with counts are visible.
+export const Grouped: Story = {
+  args: { groups },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText("checkout")).toBeVisible();
+    await expect(canvas.getByText("(2)")).toBeVisible();
+    await expect(canvas.queryByText("payment failed")).not.toBeInTheDocument();
+  },
+};
+
+// Expanding a group inserts its log rows into the same virtualized list.
+export const GroupedExpanded: Story = {
+  args: { groups },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole("button", { name: /checkout/i }));
+    await expect(await canvas.findByText("payment failed")).toBeVisible();
+    await expect(canvas.queryByText("user logged in")).not.toBeInTheDocument();
+  },
 };
