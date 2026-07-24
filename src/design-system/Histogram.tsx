@@ -89,21 +89,28 @@ function HistogramTooltipContent({
   label,
   payload,
   groups,
+  bucketDurationMs,
 }: {
   active?: boolean;
   label?: string | number;
   payload?: { payload?: HistogramBucket }[];
   groups: string[];
+  bucketDurationMs: number;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const bucket = payload[0]?.payload;
   if (!bucket) return null;
 
+  const bucketStartMs = Math.round(Number(label));
+  const bucketEndMs = bucketStartMs + bucketDurationMs;
+
   if (groups.length <= 1) {
     return (
       <div className="rounded-lg border border-panel-border bg-panel px-3 py-2 text-xs shadow-sm">
-        <div className="font-medium text-panel-muted">
-          <Time unixNano={String(Math.round(Number(label)) * 1_000_000)} />
+        <div className="flex items-baseline gap-1 font-medium text-panel-muted">
+          <Time unixNano={String(bucketStartMs * 1_000_000)}  />
+          <span>–</span>
+          <Time unixNano={String(bucketEndMs * 1_000_000)} timeOnly />
         </div>
         <div className="mt-1 flex justify-between gap-4 text-panel-muted">
           <span>Count</span>
@@ -124,8 +131,10 @@ function HistogramTooltipContent({
 
   return (
     <div className="rounded-lg border border-panel-border bg-panel p-3 text-xs shadow-sm">
-      <div className="font-medium text-panel-muted">
-        <Time unixNano={String(Math.round(Number(label)) * 1_000_000)} />
+      <div className="flex items-baseline gap-1 font-medium text-panel-muted">
+        <Time unixNano={String(bucketStartMs * 1_000_000)} />
+        <span>–</span>
+        <Time unixNano={String(bucketEndMs * 1_000_000)} />
       </div>
       <hr className="my-1 border-panel-border-subtle" />
       <ul className="mt-2 flex flex-col gap-1.5">
@@ -241,7 +250,7 @@ ${data.groups
           />
           <YAxis allowDecimals={false} fontSize={12} width={32} tick={axisTick} stroke="var(--panel-border)" />
           <Tooltip
-            content={<HistogramTooltipContent groups={data.groups} />}
+            content={<HistogramTooltipContent groups={data.groups} bucketDurationMs={data.bucketDurationMs} />}
             cursor={{ fill: "var(--panel-header-background)" }}
             wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
