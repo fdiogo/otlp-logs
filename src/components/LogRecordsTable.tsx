@@ -23,7 +23,8 @@ function isGrouped(props: LogRecordsTableProps): props is { groups: ServiceGroup
 
 type Row =
   | { type: "header"; rowKey: string; group: ServiceGroup; collapsed: boolean }
-  | { type: "log"; rowKey: string; log: LogRecordWithResource };
+  | { type: "log"; rowKey: string; log: LogRecordWithResource }
+  | { type: "detail"; rowKey: string; log: LogRecordWithResource };
 
 function renderAnyValue(value: AnyValue | undefined): string {
   if (value === undefined) return "";
@@ -124,24 +125,33 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
 
   const rows: Row[] = useMemo(() => {
     if (!groups) {
-      return (logRecords ?? []).map((log, index) => ({ type: "log" as const, rowKey: `log:${index}`, log }));
+      const result: Row[] = [];
+      for (const [index, log] of (logRecords ?? []).entries()) {
+        const rowKey = `log:${index}`;
+        result.push({ type: "log", rowKey, log });
+        if (expanded.has(rowKey)) {
+          result.push({ type: "detail", rowKey: `detail:${index}`, log });
+        }
+      }
+      return result;
     }
     const result: Row[] = [];
     for (const group of groups) {
       const collapsed = collapsedGroups.has(group.key);
       result.push({ type: "header", rowKey: `header:${group.key}`, group, collapsed });
       if (!collapsed) {
-        for (const [index, log] of group.logRecords.entries()) {
-          result.push({
-            type: "log",
-            rowKey: `log:${group.key}:${index}`,
-            log: { ...log, resourceLabel: group.label },
-          });
+        for (const [index, rawLog] of group.logRecords.entries()) {
+          const rowKey = `log:${group.key}:${index}`;
+          const log = { ...rawLog, resourceLabel: group.label };
+          result.push({ type: "log", rowKey, log });
+          if (expanded.has(rowKey)) {
+            result.push({ type: "detail", rowKey: `detail:${group.key}:${index}`, log });
+          }
         }
       }
     }
     return result;
-  }, [groups, logRecords, collapsedGroups]);
+  }, [groups, logRecords, collapsedGroups, expanded]);
 
   const columnCount = grouped ? 3 : 4;
 
@@ -151,7 +161,12 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
     count: rows.length,
     getScrollElement: () => scrollRef.current,
     getItemKey: (index) => rows[index].rowKey,
-    estimateSize: (index) => (rows[index]?.type === "header" ? 37 : 41),
+    estimateSize: (index) => {
+      const type = rows[index]?.type;
+      if (type === "header") return 37;
+      if (type === "detail") return 160;
+      return 57;
+    },
     overscan: 10,
   });
   const virtualRows = rowVirtualizer.getVirtualItems();
@@ -160,22 +175,22 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
     virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
-    <div ref={scrollRef} className="h-[600px] overflow-auto rounded-lg border border-panel-border bg-panel">
-      <table className="w-full table-fixed border-collapse text-left text-sm">
+    <div ref={scrollRef} className="h-150 overflow-auto rounded-lg border border-panel-border bg-panel">
+      <table className="w-full border-collapse text-left text-sm">
         <thead className="sticky top-0 z-10 bg-panel-header">
           <tr>
             {!grouped && (
-              <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
+              <th className="w-px whitespace-nowrap border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
                 Resource
               </th>
             )}
-            <th className="w-[15%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Severity</th>
-            <th className="w-[20%] border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Time</th>
-            <th
-              className={`${grouped ? "w-[65%]" : "w-[45%]"} border-b border-panel-border px-3 py-2 font-medium text-panel-muted`}
-            >
-              Body
+            <th className="w-px whitespace-nowrap border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
+              Severity
             </th>
+            <th className="w-px whitespace-nowrap border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
+              Time
+            </th>
+            <th className="border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Body</th>
           </tr>
         </thead>
         <tbody>
@@ -204,39 +219,53 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
               );
             }
 
+            if (row.type === "detail") {
+              return (
+                <tr key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
+                  <td
+                    colSpan={columnCount}
+                    className="border-b border-panel-border-subtle bg-panel-header px-3 py-2"
+                  >
+                    <div className="rounded-lg border border-panel-border bg-panel p-3">
+                      <h4 className="text-xs font-medium text-panel-muted">Body</h4>
+                      <hr className="border-panel-border-subtle my-1" />
+                      <p className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">
+                        {renderAnyValue(row.log.body)}
+                      </p>
+                    </div>
+                    <div className="mt-2">
+                      <AttributesTable attributes={row.log.attributes ?? []} />
+                    </div>
+                  </td>
+                </tr>
+              );
+            }
+
             const log = row.log;
             const tone = severityTone(log);
-            const isExpanded = expanded.has(row.rowKey);
             return (
               <tr
                 key={row.rowKey}
                 ref={rowVirtualizer.measureElement}
                 data-index={virtualRow.index}
-                className="[&>td]:align-top [&>td]:border-b [&>td]:border-panel-border-subtle [&>td]:px-3 [&>td]:py-2"
+                onClick={() => toggleExpanded(row.rowKey)}
+                className="cursor-pointer align-top [&>td]:border-b [&>td]:border-panel-border-subtle [&>td]:px-3 [&>td]:py-2 hover:bg-panel-header"
               >
-                <td colSpan={columnCount} className="!p-0">
-                  <div
-                    onClick={() => toggleExpanded(row.rowKey)}
-                    className="flex cursor-pointer items-start gap-0 hover:bg-panel-header"
-                  >
-                    {!grouped && (
-                      <div className="w-[20%] shrink-0 px-3 py-2 font-medium text-panel-muted">
-                        {log.resourceLabel}
-                      </div>
-                    )}
-                    <div className="w-[15%] shrink-0 px-3 py-2">
-                      <Badge tone={tone}>{severityLabel(log)}</Badge>
-                    </div>
-                    <div className="w-[20%] shrink-0 whitespace-nowrap px-3 py-2 font-mono text-xs text-panel-muted">
-                      <Time unixNano={log.timeUnixNano} />
-                    </div>
-                    <div className="min-w-0 flex-1 px-3 py-2">{renderAnyValue(log.body)}</div>
-                  </div>
-                  {isExpanded && (
-                    <div className="border-t border-panel-border-subtle bg-panel-header px-3 py-2">
-                      <AttributesTable attributes={log.attributes ?? []} />
-                    </div>
-                  )}
+                {!grouped && (
+                  <td className="w-px whitespace-nowrap align-top font-medium text-panel-muted">
+                    {log.resourceLabel}
+                  </td>
+                )}
+                <td className="w-px whitespace-nowrap align-top">
+                  <Badge tone={tone}>{severityLabel(log)}</Badge>
+                </td>
+                <td className="w-px whitespace-nowrap align-top font-mono text-xs text-panel-muted">
+                  <Time unixNano={log.timeUnixNano} />
+                </td>
+                <td className="align-top">
+                  <p title={renderAnyValue(log.body)} className="line-clamp-2 break-words">
+                    {renderAnyValue(log.body)}
+                  </p>
                 </td>
               </tr>
             );
