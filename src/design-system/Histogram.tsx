@@ -199,7 +199,26 @@ export function Histogram(props: HistogramProps) {
   }, [items, variant, maxGroupsPerBucket]);
 
   return (
-    <div className={cn("rounded-lg border border-panel-border bg-panel p-3", className)} style={{ height }}>
+    <div
+      className={cn("histogram-root rounded-lg border border-panel-border bg-panel p-3", className)}
+      style={{ height }}
+    >
+      {/*
+        Highlight-on-legend-hover, done in pure CSS instead of React state: Recharts stamps each
+        legend <li> with a stable `legend-item-{index}` class and forwards `className` onto each
+        Bar's root <g>, so :has() can match a hovered legend entry and dim every other bar group
+        without re-rendering the (potentially hundreds of) bar rectangles on every mouse move.
+      */}
+      <style>
+        {`.histogram-root .recharts-bar { transition: opacity 0.15s ease; }
+.histogram-root .recharts-legend-item { cursor: default; }
+${data.groups
+  .map(
+    (_, index) =>
+      `.histogram-root:has(.legend-item-${index}:hover) .recharts-bar:not(.histogram-bar-${index}) { opacity: 0.25; }`,
+  )
+  .join("\n")}`}
+      </style>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data.buckets}>
           <XAxis
@@ -226,10 +245,19 @@ export function Histogram(props: HistogramProps) {
             cursor={{ fill: "var(--panel-header-background)" }}
             wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
-          {data.groups.length > 1 && <Legend wrapperStyle={LEGEND_WRAPPER_STYLE} iconType="circle" />}
+          {data.groups.length > 1 && (
+            <Legend
+              wrapperStyle={LEGEND_WRAPPER_STYLE}
+              iconType="circle"
+              // Recharts defaults to sorting legend items alphabetically by value, which would
+              // desync the legend-item/bar index pairing the hover highlight CSS above relies on.
+              itemSorter={(item) => data.groups.indexOf(String(item.value))}
+            />
+          )}
           {data.groups.map((groupKey, index) => (
             <Bar
               key={groupKey}
+              className={`histogram-bar-${index}`}
               dataKey={(bucket: HistogramBucket) => bucket.counts[groupKey] ?? 0}
               name={groupKey}
               stackId="series"
