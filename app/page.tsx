@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useCallback, useMemo } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Group, List } from "lucide-react";
 import { logsQuery } from "@/queries/logsQuery";
@@ -42,9 +42,22 @@ interface ServiceGroup {
 }
 
 /**
+ * Compares log records by `timeUnixNano` descending (most recent first).
+ * Records missing a timestamp sort last.
+ */
+function compareByTimeDesc(a: { timeUnixNano?: string | number | null }, b: { timeUnixNano?: string | number | null }): number {
+  if (a.timeUnixNano == null) return b.timeUnixNano == null ? 0 : 1;
+  if (b.timeUnixNano == null) return -1;
+  const aNano = BigInt(a.timeUnixNano);
+  const bNano = BigInt(b.timeUnixNano);
+  return aNano < bNano ? 1 : aNano > bNano ? -1 : 0;
+}
+
+/**
  * Groups log records by Service Group (service.namespace + service.name).
  * Merges resourceLogs entries that resolve to the same key, since the same
- * service can appear as multiple separate resources. Sorted descending by count.
+ * service can appear as multiple separate resources. Groups are sorted
+ * descending by count; each group's logRecords are sorted descending by time.
  */
 function groupLogRecordsByService(resourceLogs: ResourceLogs[]): ServiceGroup[] {
   const groups = new Map<string, ServiceGroup>();
@@ -60,6 +73,10 @@ function groupLogRecordsByService(resourceLogs: ResourceLogs[]): ServiceGroup[] 
     } else {
       groups.set(key, { key, label: key, logRecords });
     }
+  }
+
+  for (const group of groups.values()) {
+    group.logRecords.sort(compareByTimeDesc);
   }
 
   return [...groups.values()].sort((a, b) => b.logRecords.length - a.logRecords.length);
@@ -195,7 +212,6 @@ export default function Home() {
 }
 
 function HomeContent() {
-  const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const isGrouped = searchParams.has("groupBy");
@@ -208,9 +224,9 @@ function HomeContent() {
       } else {
         nextParams.delete("groupBy");
       }
-      router.push(`${pathname}?${nextParams.toString()}`);
+      router.push(`?${nextParams.toString()}`);
     },
-    [pathname, router, searchParams],
+    [router, searchParams],
   );
 
   const { data: resourceLogs = [] } = useQuery({
@@ -220,12 +236,14 @@ function HomeContent() {
 
   const logRecords = useMemo(
     () =>
-      resourceLogs.flatMap((resourceLog) => {
-        const resourceLabel = getResourceLabel(resourceLog.resource);
-        return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
-          (scopeLog.logRecords ?? []).map((logRecord) => ({ ...logRecord, resourceLabel })),
-        );
-      }),
+      resourceLogs
+        .flatMap((resourceLog) => {
+          const resourceLabel = getResourceLabel(resourceLog.resource);
+          return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
+            (scopeLog.logRecords ?? []).map((logRecord) => ({ ...logRecord, resourceLabel })),
+          );
+        })
+        .sort(compareByTimeDesc),
     [resourceLogs],
   );
   const serviceGroups = useMemo(() => groupLogRecordsByService(resourceLogs), [resourceLogs]);

@@ -205,7 +205,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
             if (row.type === "header") {
               return (
                 <tr key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
-                  <td colSpan={columnCount} className="!p-0">
+                  <td colSpan={columnCount} className="p-0!">
                     <button
                       onClick={() => toggleGroup(row.group.key)}
                       className="flex w-full items-center gap-2 border-b border-panel-border bg-panel-header px-3 py-2 text-left text-sm font-medium hover:bg-panel-border-subtle"
@@ -263,7 +263,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
                   <Time unixNano={log.timeUnixNano} />
                 </td>
                 <td className="align-top">
-                  <p title={renderAnyValue(log.body)} className="line-clamp-2 break-words">
+                  <p title={renderAnyValue(log.body)} className="line-clamp-2 wrap-break-word">
                     {renderAnyValue(log.body)}
                   </p>
                 </td>

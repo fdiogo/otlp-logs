@@ -1,6 +1,7 @@
 "use client";
 
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Time } from "@/design-system/Time";
 
 export interface LogHistogramBucket {
   /** Bucket start, unix ms */
@@ -42,6 +43,10 @@ interface StackedLogHistogramProps extends LogHistogramBaseProps {
 
 type LogHistogramProps = FlatLogHistogramProps | StackedLogHistogramProps;
 
+function bucketTimeToUnixNano(time: number): string {
+  return String(Math.round(time) * 1_000_000);
+}
+
 function formatBucketTick(time: number, bucketDurationMs: number): string {
   const date = new Date(time);
   const showDate = bucketDurationMs >= 24 * 60 * 60 * 1000;
@@ -77,13 +82,11 @@ function StackedTooltipContent({
   active,
   label,
   payload,
-  bucketDurationMs,
   series,
 }: {
   active?: boolean;
   label?: string | number;
   payload?: { payload?: StackedHistogramBucket }[];
-  bucketDurationMs: number;
   series: StackedHistogramSeries[];
 }) {
   if (!active || !payload || payload.length === 0) return null;
@@ -98,7 +101,7 @@ function StackedTooltipContent({
   return (
     <div className="rounded-lg border border-panel-border bg-panel p-3 text-xs shadow-sm">
       <div className="font-medium text-panel-muted">
-        {formatBucketTick(Number(label), bucketDurationMs)}
+        <Time unixNano={bucketTimeToUnixNano(Number(label))} />
       </div>
       <hr className="my-1 border-panel-border-subtle" />
       <ul className="mt-2 flex flex-col gap-1.5">
@@ -125,18 +128,16 @@ function FlatTooltipContent({
   label,
   active,
   payload,
-  bucketDurationMs,
 }: {
   label?: string | number;
   active?: boolean;
   payload?: { value?: number }[];
-  bucketDurationMs: number;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div className="rounded-lg border border-panel-border bg-panel px-3 py-2 text-xs shadow-sm">
       <div className="font-medium text-panel-muted">
-        {formatBucketTick(Number(label), bucketDurationMs)}
+        <Time unixNano={bucketTimeToUnixNano(Number(label))} />
       </div>
       <div className="mt-1 flex justify-between gap-4 text-panel-muted">
         <span>Count</span>
@@ -148,7 +149,7 @@ function FlatTooltipContent({
 
 // Tooltip renders in a recharts wrapper positioned earlier in the DOM than the Legend's wrapper,
 // so without an explicit stacking order the legend (also position: absolute) paints on top of it.
-const TOOLTIP_WRAPPER_STYLE = { zIndex: 1 };
+const TOOLTIP_WRAPPER_STYLE = { zIndex: 50 };
 const LEGEND_WRAPPER_STYLE = { fontSize: 12, color: "var(--panel-foreground-muted)" };
 
 export function LogHistogram(props: LogHistogramProps) {
@@ -166,15 +167,15 @@ export function LogHistogram(props: LogHistogramProps) {
             <XAxis
               dataKey="time"
               tickFormatter={(time) => formatBucketTick(time, bucketDurationMs)}
+              interval="preserveStartEnd"
+              minTickGap={40}
               fontSize={12}
               tick={axisTick}
               stroke="var(--panel-border)"
             />
             <YAxis allowDecimals={false} fontSize={12} width={32} tick={axisTick} stroke="var(--panel-border)" />
             <Tooltip
-              content={
-                <StackedTooltipContent bucketDurationMs={bucketDurationMs} series={props.series} />
-              }
+              content={<StackedTooltipContent series={props.series} />}
               cursor={{ fill: "var(--panel-header-background)" }}
               wrapperStyle={TOOLTIP_WRAPPER_STYLE}
             />
@@ -194,13 +195,15 @@ export function LogHistogram(props: LogHistogramProps) {
             <XAxis
               dataKey="time"
               tickFormatter={(time) => formatBucketTick(time, bucketDurationMs)}
+              interval="preserveStartEnd"
+              minTickGap={40}
               fontSize={12}
               tick={axisTick}
               stroke="var(--panel-border)"
             />
             <YAxis allowDecimals={false} fontSize={12} width={32} tick={axisTick} stroke="var(--panel-border)" />
             <Tooltip
-              content={<FlatTooltipContent bucketDurationMs={bucketDurationMs} />}
+              content={<FlatTooltipContent />}
               cursor={{ fill: "var(--panel-header-background)" }}
               wrapperStyle={TOOLTIP_WRAPPER_STYLE}
             />
