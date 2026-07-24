@@ -3,6 +3,7 @@ import { queryOptions } from "@tanstack/react-query";
 
 export const logsQuery = queryOptions({
   queryKey: ["logs"],
+  staleTime: Infinity,
   queryFn: async ({ signal }) => {
     {
       const res = await fetch(

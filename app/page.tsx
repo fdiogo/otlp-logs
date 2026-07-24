@@ -40,13 +40,17 @@ function HomeContent() {
     select: (data) => data?.resourceLogs ?? [],
   });
 
-  const logRecords = resourceLogs.flatMap((resourceLog) => {
-    const resourceLabel = getResourceLabel(resourceLog.resource);
-    return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
-      (scopeLog.logRecords ?? []).map((logRecord) => ({ ...logRecord, resourceLabel })),
-    );
-  });
-  const serviceGroups = groupLogRecordsByService(resourceLogs);
+  const logRecords = useMemo(
+    () =>
+      resourceLogs.flatMap((resourceLog) => {
+        const resourceLabel = getResourceLabel(resourceLog.resource);
+        return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
+          (scopeLog.logRecords ?? []).map((logRecord) => ({ ...logRecord, resourceLabel })),
+        );
+      }),
+    [resourceLogs],
+  );
+  const serviceGroups = useMemo(() => groupLogRecordsByService(resourceLogs), [resourceLogs]);
 
   const bucketDurationMs = useMemo(() => {
     let minTimeMs = Infinity;
@@ -61,6 +65,15 @@ function HomeContent() {
     return computeBucketDuration(minTimeMs, maxTimeMs);
   }, [logRecords]);
 
+  const flatBuckets = useMemo(
+    () => bucketLogRecords(logRecords, bucketDurationMs),
+    [logRecords, bucketDurationMs],
+  );
+  const groupedBuckets = useMemo(
+    () => bucketLogRecordsByService(serviceGroups, bucketDurationMs),
+    [serviceGroups, bucketDurationMs],
+  );
+
   return (
     <div className="h-screen p-4">
       <div className="mb-3 flex items-center justify-between">
@@ -73,16 +86,12 @@ function HomeContent() {
       {isGrouped ? (
         <LogHistogram
           variant="stacked"
-          {...bucketLogRecordsByService(serviceGroups, bucketDurationMs)}
+          {...groupedBuckets}
           bucketDurationMs={bucketDurationMs}
           className="mb-4"
         />
       ) : (
-        <LogHistogram
-          buckets={bucketLogRecords(logRecords, bucketDurationMs)}
-          bucketDurationMs={bucketDurationMs}
-          className="mb-4"
-        />
+        <LogHistogram buckets={flatBuckets} bucketDurationMs={bucketDurationMs} className="mb-4" />
       )}
 
       {isGrouped ? (
