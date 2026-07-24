@@ -26,18 +26,6 @@ function renderAnyValue(value: AnyValue | undefined): string {
   return "";
 }
 
-function attributeValueType(value: AnyValue | undefined): string {
-  if (value === undefined) return "empty";
-  if (value.stringValue !== undefined) return "string";
-  if (value.boolValue !== undefined) return "bool";
-  if (value.intValue !== undefined) return "int";
-  if (value.doubleValue !== undefined) return "double";
-  if (value.bytesValue !== undefined) return "bytes";
-  if (value.arrayValue !== undefined) return "array";
-  if (value.kvlistValue !== undefined) return "kvlist";
-  return "empty";
-}
-
 function severityRank(log: LogRecordWithResource): number {
   if (typeof log.severityNumber === "number") return log.severityNumber;
   const text = log.severityText?.toUpperCase() ?? "";
@@ -67,31 +55,25 @@ const SEVERITY_BADGE: Record<string, string> = {
 };
 
 function AttributesTable({ attributes }: { attributes: KeyValue[] }) {
-  if (attributes.length === 0) {
-    return <p className="text-xs italic text-black/50">No attributes</p>;
-  }
-
   return (
-    <table className="w-full border-collapse text-left text-xs">
-      <thead>
-        <tr>
-          <th className="border-b p-1 pr-4 font-medium text-black/60">Key</th>
-          <th className="border-b p-1 pr-4 font-medium text-black/60">Value</th>
-          <th className="border-b p-1 font-medium text-black/60">Type</th>
-        </tr>
-      </thead>
-      <tbody>
-        {attributes.map((attribute, index) => (
-          <tr key={attribute.key ?? index}>
-            <td className="border-b p-1 pr-4 align-top font-mono">{attribute.key}</td>
-            <td className="border-b p-1 pr-4 align-top font-mono whitespace-pre-wrap break-all">
-              {renderAnyValue(attribute.value)}
-            </td>
-            <td className="border-b p-1 align-top text-black/50">{attributeValueType(attribute.value)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <div className="rounded-lg border border-black/10 bg-white p-3">
+      <h4 className="text-xs font-medium text-black/60">Attributes</h4>
+      <hr className="border-slate-200 my-1" />
+      {attributes.length === 0 ? (
+        <p className="mt-2 text-xs italic text-black/50">No attributes</p>
+      ) : (
+        <div className="mt-2 flex flex-col gap-2">
+          {attributes.map((attribute, index) => (
+            <div key={attribute.key ?? index} className="font-mono text-xs">
+              <div className="text-black/50">{attribute.key}</div>
+              <div className="whitespace-pre-wrap break-all text-black/80">
+                {renderAnyValue(attribute.value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

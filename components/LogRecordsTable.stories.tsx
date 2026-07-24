@@ -24,7 +24,20 @@ const logRecords: LogRecordWithResource[] = [
   logRecord({
     severityText: "ERROR",
     body: { stringValue: "payment failed" },
-    attributes: [{ key: "order.id", value: { stringValue: "ord_123" } }],
+    attributes: [
+      { key: "order.id", value: { stringValue: "ord_123" } },
+      { key: "amount.cents", value: { intValue: "4999" } },
+      { key: "retryable", value: { boolValue: true } },
+      { key: "latency.ms", value: { doubleValue: 812.4 } },
+      {
+        key: "gateway.response",
+        value: {
+          kvlistValue: {
+            values: [{ key: "code", value: { stringValue: "card_declined" } }],
+          },
+        },
+      },
+    ],
     resourceLabel: "checkout",
   }),
   logRecord({
