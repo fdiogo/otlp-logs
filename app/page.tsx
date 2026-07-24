@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Group, List } from "lucide-react";
 import { logsQuery } from "@/queries/logsQuery";
-import { LogHistogram } from "@/components/LogHistogram";
+import { Histogram } from "@/design-system/Histogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ToggleGroup } from "@/design-system/ToggleGroup";
 import { Skeleton } from "@/design-system/Skeleton";
@@ -25,41 +25,51 @@ function HomeContent() {
 
   const { data, isPending } = useQuery(logsQuery);
 
-  const sortedLogRecords = useMemo(
+  const logRecordsWithLabel = useMemo(
     () =>
-      data?.resourceLogs
-        ?.flatMap((resourceLog) => {
-          const namespace = resourceLog.resource?.attributes?.find((attribute) => attribute.key === "service.namespace")?.value
-            ?.stringValue;
+      data?.resourceLogs?.flatMap((resourceLog) => {
+        const namespace = resourceLog.resource?.attributes?.find((attribute) => attribute.key === "service.namespace")?.value?.stringValue;
 
-          // OpenTelemetry's own convention for a resource with no service.name attribute set.
-          const name =
-            resourceLog.resource?.attributes?.find((attribute) => attribute.key === "service.name")?.value?.stringValue ??
-            "unknown_service";
+        // OpenTelemetry's own convention for a resource with no service.name attribute set.
+        const name =
+          resourceLog.resource?.attributes?.find((attribute) => attribute.key === "service.name")?.value?.stringValue ?? "unknown_service";
 
-          const resourceLabel = namespace ? `${namespace}/${name}` : name;
-          return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
-            (scopeLog.logRecords ?? []).map((logRecord) => ({
-              ...logRecord,
-              resourceLabel,
-            })),
-          );
-        })
-        .sort((a, b) => {
-          if (a.timeUnixNano == null) return b.timeUnixNano == null ? 0 : 1;
-          if (b.timeUnixNano == null) return -1;
-          const aNano = BigInt(a.timeUnixNano);
-          const bNano = BigInt(b.timeUnixNano);
-          return aNano < bNano ? 1 : aNano > bNano ? -1 : 0;
-        }),
-    [data],
+        const resourceLabel = namespace ? `${namespace}/${name}` : name;
+        return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
+          (scopeLog.logRecords ?? []).map((logRecord) => ({
+            ...logRecord,
+            resourceLabel,
+          })),
+        );
+      }),
+    [data?.resourceLogs],
+  );
+
+  const sortedLogRecordsWithLabel = useMemo(
+    () => 
+      logRecordsWithLabel?.sort((a, b) => {
+        if (a.timeUnixNano == null) return b.timeUnixNano == null ? 0 : 1;
+        if (b.timeUnixNano == null) return -1;
+        const aNano = BigInt(a.timeUnixNano);
+        const bNano = BigInt(b.timeUnixNano);
+        return aNano < bNano ? 1 : aNano > bNano ? -1 : 0;
+      }),
+    [logRecordsWithLabel],
+  );
+
+  const histogramItems = useMemo(
+    () =>
+      (sortedLogRecordsWithLabel ?? [])
+        .filter((record) => record.timeUnixNano != null)
+        .map((record) => ({ timeUnixNano: record.timeUnixNano!, groupKey: record.resourceLabel })),
+    [sortedLogRecordsWithLabel],
   );
 
   const logRecordsByService = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; logRecords: NonNullable<typeof sortedLogRecords> }>();
+    const groups = new Map<string, { key: string; label: string; logRecords: NonNullable<typeof sortedLogRecordsWithLabel> }>();
 
     // sortedLogRecords is already sorted by time desc, so appending here needs no re-sort per group.
-    for (const logRecord of sortedLogRecords ?? []) {
+    for (const logRecord of sortedLogRecordsWithLabel ?? []) {
       const existing = groups.get(logRecord.resourceLabel);
       if (existing) {
         existing.logRecords.push(logRecord);
@@ -69,7 +79,7 @@ function HomeContent() {
     }
 
     return [...groups.values()].sort((a, b) => b.logRecords.length - a.logRecords.length);
-  }, [sortedLogRecords]);
+  }, [sortedLogRecordsWithLabel]);
 
   return (
     <div className="h-screen p-4">
@@ -102,10 +112,8 @@ function HomeContent() {
             <Skeleton key={index} className="flex-1" style={{ height: `${heightPercent}%` }} />
           ))}
         </div>
-      ) : isGrouped ? (
-        <LogHistogram variant="stacked" serviceGroups={logRecordsByService} className="mb-4" />
       ) : (
-        <LogHistogram logRecords={sortedLogRecords ?? []} className="mb-4" />
+        <Histogram items={histogramItems} variant={isGrouped ? "grouped" : "flat"} className="mb-4" />
       )}
 
       {isPending ? (
@@ -128,7 +136,7 @@ function HomeContent() {
       ) : isGrouped ? (
         <LogRecordsTable groups={logRecordsByService} />
       ) : (
-        <LogRecordsTable logRecords={sortedLogRecords ?? []} />
+        <LogRecordsTable logRecords={sortedLogRecordsWithLabel ?? []} />
       )}
     </div>
   );
