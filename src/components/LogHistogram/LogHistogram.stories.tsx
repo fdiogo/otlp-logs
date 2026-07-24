@@ -94,6 +94,7 @@ function buildDynamicStackedBuckets(
 }
 
 const meta = {
+  title: "Components/LogHistogram",
   component: LogHistogram,
   tags: ["ai-generated"],
 } satisfies Meta<typeof LogHistogram>;

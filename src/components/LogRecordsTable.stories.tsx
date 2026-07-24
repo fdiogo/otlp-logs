@@ -49,6 +49,7 @@ const logRecords: LogRecordWithResource[] = [
 ];
 
 const meta = {
+  title: "Components/LogRecordsTable",
   component: LogRecordsTable,
   tags: ["ai-generated"],
 } satisfies Meta<typeof LogRecordsTable>;

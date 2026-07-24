@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Checkbox } from "./Checkbox";
 
 const meta = {
+  title: "Design System/Checkbox",
   component: Checkbox,
   tags: ["ai-generated"],
   args: {

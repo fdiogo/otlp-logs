@@ -5,7 +5,8 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AnyValue, KeyValue } from "@/app/generated/opentelemetry/proto/common/v1/common";
 import type { LogRecord } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
 import type { ServiceGroup } from "@/queries/serviceGroup";
-import { Time } from "./Time";
+import { Time } from "@/design-system/Time";
+import { Badge } from "@/design-system/Badge";
 
 export type LogRecordWithResource = LogRecord & { resourceLabel?: string };
 
@@ -50,20 +51,13 @@ function severityLabel(log: LogRecordWithResource): string {
   return log.severityText ?? String(log.severityNumber ?? "");
 }
 
-function severityTone(log: LogRecordWithResource): "error" | "warn" | "debug" | "info" {
+function severityTone(log: LogRecordWithResource): "error" | "warn" | "neutral" | "info" {
   const rank = severityRank(log);
   if (rank >= 17) return "error";
   if (rank >= 13) return "warn";
-  if (rank < 9) return "debug";
+  if (rank < 9) return "neutral";
   return "info";
 }
-
-const SEVERITY_BADGE: Record<string, string> = {
-  error: "bg-red-50 text-red-700 ring-1 ring-inset ring-red-600/20",
-  warn: "bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20",
-  debug: "bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20",
-  info: "bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20",
-};
 
 function AttributesTable({ attributes }: { attributes: KeyValue[] }) {
   return (
@@ -226,9 +220,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
                       </div>
                     )}
                     <div className="w-[15%] shrink-0 px-3 py-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_BADGE[tone]}`}>
-                        {severityLabel(log)}
-                      </span>
+                      <Badge tone={tone}>{severityLabel(log)}</Badge>
                     </div>
                     <div className="w-[20%] shrink-0 whitespace-nowrap px-3 py-2 font-mono text-xs text-panel-muted">
                       <Time unixNano={log.timeUnixNano} />

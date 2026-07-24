@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { Group, List } from "lucide-react";
 import { logsQuery } from "@/queries/logsQuery";
 import { bucketLogRecords } from "@/queries/bucketLogRecords";
 import { bucketLogRecordsByService } from "@/queries/bucketLogRecordsByService";
@@ -11,7 +12,12 @@ import { groupLogRecordsByService } from "@/queries/serviceGroup";
 import { getResourceLabel } from "@/queries/resourceLabel";
 import { LogHistogram } from "@/components/LogHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
-import { Checkbox } from "@/components/Checkbox";
+import { ToggleGroup } from "@/design-system/ToggleGroup";
+
+const VIEW_OPTIONS = [
+  { value: "flat" as const, label: "None", icon: List },
+  { value: "grouped" as const, label: "Service", icon: Group },
+];
 
 export default function Home() {
   return (
@@ -27,10 +33,10 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const isGrouped = searchParams.has("groupBy");
 
-  const handleGroupByServiceChange = useCallback(
-    (checked: boolean) => {
+  const handleViewChange = useCallback(
+    (value: "flat" | "grouped") => {
       const nextParams = new URLSearchParams(searchParams.toString());
-      if (checked) {
+      if (value === "grouped") {
         nextParams.set("groupBy", "service");
       } else {
         nextParams.delete("groupBy");
@@ -83,7 +89,14 @@ function HomeContent() {
     <div className="h-screen p-4">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Logs</h1>
-        <Checkbox checked={isGrouped} onChange={handleGroupByServiceChange} label="Group by service" />
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-panel-muted">Group by</span>
+          <ToggleGroup
+            value={isGrouped ? "grouped" : "flat"}
+            onChange={handleViewChange}
+            options={VIEW_OPTIONS}
+          />
+        </div>
       </div>
 
       {isGrouped ? (

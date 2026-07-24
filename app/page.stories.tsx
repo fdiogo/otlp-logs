@@ -71,6 +71,7 @@ function makeQueryClient() {
 }
 
 const meta = {
+  title: "Routes/index",
   component: Home,
   tags: ["ai-generated"],
   parameters: {
