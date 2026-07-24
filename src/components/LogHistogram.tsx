@@ -4,25 +4,6 @@ import { useMemo } from "react";
 import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Time } from "@/design-system/Time";
 
-export interface LogHistogramBucket {
-  /** Bucket start, unix ms */
-  time: number;
-  count: number;
-}
-
-export interface StackedHistogramSeries {
-  key: string;
-  label: string;
-}
-
-export interface StackedHistogramBucket {
-  /** Bucket start, unix ms */
-  time: number;
-  total: number;
-  /** Per-series count for this bucket, keyed by StackedHistogramSeries.key. */
-  counts: Record<string, number>;
-}
-
 interface HistogramLogRecord {
   timeUnixNano?: string | number | null;
 }
@@ -90,9 +71,7 @@ function computeBucketDuration(minTimeMs: number, maxTimeMs: number): number {
   const span = Math.max(0, maxTimeMs - minTimeMs);
   if (span === 0) return BUCKET_DURATION_LADDER_MS[0];
 
-  const fitting = BUCKET_DURATION_LADDER_MS.find(
-    (candidate) => span / candidate <= MAX_BUCKET_COUNT,
-  );
+  const fitting = BUCKET_DURATION_LADDER_MS.find((candidate) => span / candidate <= MAX_BUCKET_COUNT);
   return fitting ?? BUCKET_DURATION_LADDER_MS[BUCKET_DURATION_LADDER_MS.length - 1];
 }
 
@@ -110,10 +89,7 @@ function computeBucketDurationForRecords(records: HistogramLogRecord[]): number 
   return computeBucketDuration(minTimeMs, maxTimeMs);
 }
 
-function bucketLogRecords(
-  logRecords: HistogramLogRecord[],
-  bucketDurationMs: number,
-): LogHistogramBucket[] {
+function bucketLogRecords(logRecords: HistogramLogRecord[], bucketDurationMs: number) {
   const counts = new Map<number, number>();
 
   for (const record of logRecords) {
@@ -123,9 +99,7 @@ function bucketLogRecords(
     counts.set(bucketStart, (counts.get(bucketStart) ?? 0) + 1);
   }
 
-  return [...counts.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([time, count]) => ({ time, count }));
+  return [...counts.entries()].sort(([a], [b]) => a - b).map(([time, count]) => ({ time, count }));
 }
 
 /** Histogram-only: stacks the 8 highest-volume Service Groups, folds the rest into "Other". */
@@ -140,17 +114,11 @@ const OTHER_SERIES_KEY = "__other__";
  * descending by count (as returned by `groupLogRecordsByService`). Stacks the
  * 8 highest-volume Service Groups, folds the rest into "Other".
  */
-function bucketLogRecordsByService(
-  serviceGroups: HistogramServiceGroup[],
-  bucketDurationMs: number,
-): { buckets: StackedHistogramBucket[]; series: StackedHistogramSeries[] } {
+function bucketLogRecordsByService(serviceGroups: HistogramServiceGroup[], bucketDurationMs: number) {
   const topGroups = serviceGroups.slice(0, TOP_N);
   const otherGroups = serviceGroups.slice(TOP_N);
 
-  const series: StackedHistogramSeries[] = topGroups.map((group) => ({
-    key: group.key,
-    label: group.label,
-  }));
+  const series = topGroups.map((group) => ({ key: group.key, label: group.label }));
   if (otherGroups.length > 0) {
     series.push({ key: OTHER_SERIES_KEY, label: "Other" });
   }
@@ -177,7 +145,7 @@ function bucketLogRecordsByService(
     }
   }
 
-  const buckets: StackedHistogramBucket[] = [...bucketCounts.entries()]
+  const buckets = [...bucketCounts.entries()]
     .sort(([a], [b]) => a - b)
     .map(([time, counts]) => ({
       time,
@@ -219,7 +187,9 @@ const SERIES_COLORS = [
 ];
 const OTHER_COLOR = "var(--series-other)";
 
-function colorForSeries(series: StackedHistogramSeries, index: number): string {
+type StackedBuckets = ReturnType<typeof bucketLogRecordsByService>;
+
+function colorForSeries(series: StackedBuckets["series"][number], index: number): string {
   return index < SERIES_COLORS.length ? SERIES_COLORS[index] : OTHER_COLOR;
 }
 
@@ -231,8 +201,8 @@ function StackedTooltipContent({
 }: {
   active?: boolean;
   label?: string | number;
-  payload?: { payload?: StackedHistogramBucket }[];
-  series: StackedHistogramSeries[];
+  payload?: { payload?: StackedBuckets["buckets"][number] }[];
+  series: StackedBuckets["series"];
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const bucket = payload[0]?.payload;
@@ -252,10 +222,7 @@ function StackedTooltipContent({
       <ul className="mt-2 flex flex-col gap-1.5">
         {rows.map((row) => (
           <li key={row.key} className="flex items-center gap-2">
-            <span
-              className="inline-block h-2 w-2 shrink-0 rounded-full"
-              style={{ backgroundColor: row.color }}
-            />
+            <span className="inline-block h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: row.color }} />
             <span className="flex-1 text-panel-muted">{row.label}</span>
             <span className="tabular-nums text-panel-muted">{row.count}</span>
           </li>
@@ -269,15 +236,7 @@ function StackedTooltipContent({
   );
 }
 
-function FlatTooltipContent({
-  label,
-  active,
-  payload,
-}: {
-  label?: string | number;
-  active?: boolean;
-  payload?: { value?: number }[];
-}) {
+function FlatTooltipContent({ label, active, payload }: { label?: string | number; active?: boolean; payload?: { value?: number }[] }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div className="rounded-lg border border-panel-border bg-panel px-3 py-2 text-xs shadow-sm">
@@ -303,9 +262,7 @@ export function LogHistogram(props: LogHistogramProps) {
 
   const data = useMemo(() => {
     if (props.variant === "stacked") {
-      const bucketDurationMs = computeBucketDurationForRecords(
-        props.serviceGroups.flatMap((group) => group.logRecords),
-      );
+      const bucketDurationMs = computeBucketDurationForRecords(props.serviceGroups.flatMap((group) => group.logRecords));
       return {
         variant: "stacked" as const,
         ...bucketLogRecordsByService(props.serviceGroups, bucketDurationMs),
@@ -322,10 +279,7 @@ export function LogHistogram(props: LogHistogramProps) {
   const { bucketDurationMs } = data;
 
   return (
-    <div
-      className={`rounded-lg border border-panel-border bg-panel p-3 ${className ?? ""}`}
-      style={{ height }}
-    >
+    <div className={`rounded-lg border border-panel-border bg-panel p-3 ${className ?? ""}`} style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
         {data.variant === "stacked" ? (
           <BarChart data={data.buckets}>
@@ -348,7 +302,7 @@ export function LogHistogram(props: LogHistogramProps) {
             {data.series.map((s, index) => (
               <Bar
                 key={s.key}
-                dataKey={(bucket: StackedHistogramBucket) => bucket.counts[s.key] ?? 0}
+                dataKey={(bucket: StackedBuckets["buckets"][number]) => bucket.counts[s.key] ?? 0}
                 name={s.label}
                 stackId="services"
                 fill={colorForSeries(s, index)}
