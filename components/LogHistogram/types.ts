@@ -4,12 +4,36 @@ export interface LogHistogramBucket {
   count: number;
 }
 
-export interface LogHistogramProps {
-  buckets: LogHistogramBucket[];
+export interface StackedHistogramSeries {
+  key: string;
+  label: string;
+}
+
+export interface StackedHistogramBucket {
+  /** Bucket start, unix ms */
+  time: number;
+  total: number;
+  /** Per-series count for this bucket, keyed by StackedHistogramSeries.key. */
+  counts: Record<string, number>;
+}
+
+interface LogHistogramBaseProps {
   /** Width of each bucket, in ms. Used for axis tick formatting. */
   bucketDurationMs: number;
   height?: number;
   className?: string;
-  /** Fired when a bucket is clicked, e.g. to filter the log list to that time range. */
-  onBucketClick?: (bucket: LogHistogramBucket) => void;
 }
+
+export interface FlatLogHistogramProps extends LogHistogramBaseProps {
+  variant?: "flat";
+  buckets: LogHistogramBucket[];
+}
+
+export interface StackedLogHistogramProps extends LogHistogramBaseProps {
+  variant: "stacked";
+  buckets: StackedHistogramBucket[];
+  /** Stack order, bottom to top. */
+  series: StackedHistogramSeries[];
+}
+
+export type LogHistogramProps = FlatLogHistogramProps | StackedLogHistogramProps;

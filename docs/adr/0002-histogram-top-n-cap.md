@@ -1,0 +1,3 @@
+# Histogram stacks cap at top-8 Service Groups + Other, ranked globally
+
+The mock API generates a random number of services per request, so an uncapped stacked histogram could show anywhere from 2 to 20+ colored segments per bar — unreadable, and with no stable color-to-service mapping. We cap stacked segments to the 8 Service Groups with the highest total volume across the whole dataset, folding the rest into an "Other" segment. Ranking is computed once, globally (not per bucket), so segment identity, color, and stack position stay fixed across every bucket — a per-bucket top-8 would make "Other" change composition bar to bar, breaking the legend's meaning. This cap is a histogram-only concern; the table's Grouped View always lists every Service Group uncapped.
