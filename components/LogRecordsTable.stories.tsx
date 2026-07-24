@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
 import { LogRecordsTable, type LogRecordWithResource } from "./LogRecordsTable";
+import manyLogRecords from "./fixtures/logRecords.json";
 
 function logRecord(overrides: Partial<LogRecordWithResource>): LogRecordWithResource {
   return {
@@ -56,4 +57,10 @@ export const ExpandRow: Story = {
     await userEvent.click(canvas.getByText(/payment failed/));
     await expect(await canvas.findByText(/order.id/)).toBeVisible();
   },
+};
+
+// Real-world dataset captured from the take-home assignment API, used to sanity-check
+// rendering performance and layout with thousands of rows.
+export const ManyRows: Story = {
+  args: { logRecords: manyLogRecords as LogRecordWithResource[] },
 };
