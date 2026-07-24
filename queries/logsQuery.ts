@@ -53,6 +53,9 @@ export interface ResourceLogs {
   schemaUrl?: string;
 }
 
+/**
+ * This type was auto-generated using ts-proto
+ */
 export interface ExportLogsServiceRequest {
   resourceLogs?: ResourceLogs[];
 }

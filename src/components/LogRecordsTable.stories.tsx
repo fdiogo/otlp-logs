@@ -1,48 +1,44 @@
+import type { ComponentProps } from "react";
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
-import { LogRecordsTable, type LogRecordWithResource } from "./LogRecordsTable";
+import { LogRecordsTable } from "./LogRecordsTable";
 
-function logRecord(overrides: Partial<LogRecordWithResource>): LogRecordWithResource {
+type LogItem = ComponentProps<typeof LogRecordsTable>["items"][number];
+
+function logItem(overrides: Partial<LogItem>): LogItem {
   return {
+    groupKey: "checkout",
     timeUnixNano: "1712000000000000000",
     severityText: "INFO",
     body: { stringValue: "request completed" },
     attributes: [],
-    resourceLabel: "checkout",
     ...overrides,
   };
 }
 
-const logRecords: LogRecordWithResource[] = [
-  logRecord({
+const items: LogItem[] = [
+  logItem({
+    groupKey: "auth",
     severityText: "INFO",
     body: { stringValue: "user logged in" },
     attributes: [{ key: "user.id", value: { stringValue: "42" } }],
-    resourceLabel: "auth",
   }),
-  logRecord({
+  logItem({
+    groupKey: "checkout",
     severityText: "ERROR",
     body: { stringValue: "payment failed" },
     attributes: [
       { key: "order.id", value: { stringValue: "ord_123" } },
-      { key: "amount.cents", value: { intValue: "4999" } },
+      { key: "amount.cents", value: { stringValue: "4999" } },
       { key: "retryable", value: { boolValue: true } },
       { key: "latency.ms", value: { doubleValue: 812.4 } },
-      {
-        key: "gateway.response",
-        value: {
-          kvlistValue: {
-            values: [{ key: "code", value: { stringValue: "card_declined" } }],
-          },
-        },
-      },
+      { key: "gateway.response", value: { stringValue: "{code: card_declined}" } },
     ],
-    resourceLabel: "checkout",
   }),
-  logRecord({
+  logItem({
+    groupKey: "checkout",
     severityText: "WARN",
     body: { stringValue: "retrying request" },
-    resourceLabel: "checkout",
   }),
 ];
 
@@ -56,38 +52,25 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { logRecords },
+  args: { items, variant: "flat" },
 };
 
 export const Empty: Story = {
-  args: { logRecords: [] },
+  args: { items: [], variant: "flat" },
 };
 
 // Clicking a row reveals its attributes.
 export const ExpandRow: Story = {
-  args: { logRecords },
+  args: { items, variant: "flat" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByText(/payment failed/));
     await expect(await canvas.findByText(/order.id/)).toBeVisible();
   },
 };
 
-const groups = [
-  {
-    key: "checkout",
-    label: "checkout",
-    logRecords: logRecords.filter((log) => log.resourceLabel === "checkout"),
-  },
-  {
-    key: "auth",
-    label: "auth",
-    logRecords: logRecords.filter((log) => log.resourceLabel === "auth"),
-  },
-];
-
 // Groups start collapsed: only header rows with counts are visible.
 export const Grouped: Story = {
-  args: { groups },
+  args: { items, variant: "grouped" },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("checkout")).toBeVisible();
     await expect(canvas.getByText("(2)")).toBeVisible();
@@ -97,7 +80,7 @@ export const Grouped: Story = {
 
 // Expanding a group inserts its log rows into the same virtualized list.
 export const GroupedExpanded: Story = {
-  args: { groups },
+  args: { items, variant: "grouped" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: /checkout/i }));
     await expect(await canvas.findByText("payment failed")).toBeVisible();

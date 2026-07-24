@@ -41,13 +41,13 @@ function HomeContent() {
             resourceLabel,
           })),
         );
-      }),
+      }) ?? [],
     [data?.resourceLogs],
   );
 
   const sortedLogRecordsWithLabel = useMemo(
     () => 
-      logRecordsWithLabel?.sort((a, b) => {
+      logRecordsWithLabel.sort((a, b) => {
         if (a.timeUnixNano == null) return b.timeUnixNano == null ? 0 : 1;
         if (b.timeUnixNano == null) return -1;
         const aNano = BigInt(a.timeUnixNano);
@@ -59,27 +59,27 @@ function HomeContent() {
 
   const histogramItems = useMemo(
     () =>
-      (sortedLogRecordsWithLabel ?? [])
+      sortedLogRecordsWithLabel
         .filter((record) => record.timeUnixNano != null)
         .map((record) => ({ timeUnixNano: record.timeUnixNano!, groupKey: record.resourceLabel })),
     [sortedLogRecordsWithLabel],
   );
 
-  const logRecordsByService = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; logRecords: NonNullable<typeof sortedLogRecordsWithLabel> }>();
-
-    // sortedLogRecords is already sorted by time desc, so appending here needs no re-sort per group.
-    for (const logRecord of sortedLogRecordsWithLabel ?? []) {
-      const existing = groups.get(logRecord.resourceLabel);
-      if (existing) {
-        existing.logRecords.push(logRecord);
-      } else {
-        groups.set(logRecord.resourceLabel, { key: logRecord.resourceLabel, label: logRecord.resourceLabel, logRecords: [logRecord] });
-      }
-    }
-
-    return [...groups.values()].sort((a, b) => b.logRecords.length - a.logRecords.length);
-  }, [sortedLogRecordsWithLabel]);
+  const logItems = useMemo(
+    () =>
+      sortedLogRecordsWithLabel.map((record) => ({
+        groupKey: record.resourceLabel,
+        severityNumber: record.severityNumber,
+        severityText: record.severityText,
+        timeUnixNano: record.timeUnixNano ?? "0",
+        body: record.body,
+        attributes: (record.attributes ?? []).map((attribute) => ({
+          key: attribute.key ?? "",
+          value: attribute.value,
+        })),
+      })),
+    [sortedLogRecordsWithLabel],
+  );
 
   return (
     <div className="h-screen p-4">
@@ -133,10 +133,8 @@ function HomeContent() {
             </div>
           ))}
         </div>
-      ) : isGrouped ? (
-        <LogRecordsTable groups={logRecordsByService} />
       ) : (
-        <LogRecordsTable logRecords={sortedLogRecordsWithLabel ?? []} />
+        <LogRecordsTable items={logItems} variant={isGrouped ? "grouped" : "flat"} />
       )}
     </div>
   );
