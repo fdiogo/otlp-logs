@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OTLP Log Viewer
 
-## Getting Started
+## Quick Start
 
-First, run the development server:
+| | |
+|---|---|
+| **Time** | 3-4 hours (submit what you have) |
+| **Stack** | React, TypeScript, Next.js (App Router) |
+| **Submit** | Public GitHub repo + README |
+| **Bonus** | Vercel deployment |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> **Create a NEW repository.** Do not extend this codebase.
+
+---
+
+## Part 1: Coding Assignment
+
+### Scenario
+
+Your team needs a web application to visualize [OTLP log records](https://opentelemetry.io/docs/concepts/signals/logs/) from a backend service. Engineers should be able to quickly scan logs, drill into details, and understand log distribution patterns across services.
+
+### Your Task
+
+Build a log viewer that fetches data from the provided API endpoint and addresses these requirements:
+
+1. **Log List View** — Display logs in a table (Severity, Time, Body) with expandable rows showing all attributes
+2. **Histogram** — Visualize log distribution over time (X: Time, Y: Count)
+3. **Group by Service** — Add a toggle that switches between flat list view and grouped view (organized by parent resource with collapsible groups)
+
+### What We're Looking For
+
+- Data fetching and state management patterns
+- Data transformation for nested OTLP types
+- Component architecture and TypeScript usage
+- UI/UX consistent with observability domain conventions
+- Visual polish and usability — with modern tooling the bar for a well-crafted interface is higher than ever
+- Production-ready code organization
+
+> The requirements above are a starting point. We love seeing what engineers choose to do when given room to make something their own.
+
+---
+
+## Part 2: Interview Discussion (Do Not Code)
+
+### Scenario
+
+Users of the log viewer have started asking for filtering capabilities. The product brief is intentionally vague:
+
+> "We need a way for users to filter logs and share interesting findings with teammates."
+
+### Your Task
+
+As the Senior Product Engineer (Frontend), you're asked to help shape the approach before implementation begins.
+
+During the interview, walk us through:
+
+1. **Clarifying the problem** — What questions would you ask product, backend, and users?
+2. **Structuring the solution** — How would you design the UI and frontend architecture?
+3. **Identifying trade-offs** — What key decisions would you make, and what are the pros and cons?
+
+### What We're Looking For
+
+- Ability to clarify ambiguity in product requirements
+- Structural thinking about UI architecture, components, and data flow
+- Articulating trade-offs (complexity vs. maintainability, performance vs. UX)
+- Bonus: Observability-aware thinking
+
+---
+
+## API Reference
+
+**Endpoint:**
+```
+GET https://take-home-assignment-otlp-logs-api.vercel.app/api/v2/logs
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**TypeScript Types:**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The response conforms to the [OTLP Logs protobuf schema](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto).
+You can use it to generate the necessary types
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Data Structure:**
+```
+IExportLogsServiceRequest
+└── resourceLogs[]
+    ├── resource.attributes[]
+    │   ├── service.name
+    │   ├── service.namespace
+    │   └── service.version
+    └── scopeLogs[]
+        └── logRecords[]
+            ├── timeUnixNano
+            ├── severityText / severityNumber
+            ├── body
+            └── attributes[]
+```
 
-## Learn More
+> The API generates random mock data on each request.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## References
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [OpenTelemetry Logs Concepts](https://opentelemetry.io/docs/concepts/signals/logs/)
+- [OTLP Protocol](https://github.com/open-telemetry/opentelemetry-proto)
+- [OTLP Logs Example JSON](https://github.com/open-telemetry/opentelemetry-proto/blob/main/examples/logs.json)
