@@ -1,4 +1,4 @@
-import { ExportLogsServiceRequest } from "@/app/logs/generated/opentelemetry/proto/collector/logs/v1/logs_service";
+import { ExportLogsServiceRequest } from "@/app/generated/opentelemetry/proto/collector/logs/v1/logs_service";
 import { queryOptions } from "@tanstack/react-query";
 
 export const logsQuery = queryOptions({
