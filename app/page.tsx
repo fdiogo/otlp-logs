@@ -1,8 +1,7 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
-import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useMemo } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { logsQuery } from "@/queries/logsQuery";
 import { bucketLogRecords } from "@/queries/bucketLogRecords";
@@ -13,6 +12,7 @@ import { getResourceLabel } from "@/queries/resourceLabel";
 import { LogHistogram } from "@/components/LogHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ServiceGroupSection } from "@/components/ServiceGroupSection";
+import { Checkbox } from "@/components/Checkbox";
 
 export default function Home() {
   return (
@@ -24,16 +24,22 @@ export default function Home() {
 
 function HomeContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isGrouped = searchParams.has("groupBy");
 
-  const toggleParams = new URLSearchParams(searchParams.toString());
-  if (isGrouped) {
-    toggleParams.delete("groupBy");
-  } else {
-    toggleParams.set("groupBy", "service");
-  }
-  const toggleHref = `${pathname}?${toggleParams.toString()}`;
+  const handleGroupByServiceChange = useCallback(
+    (checked: boolean) => {
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (checked) {
+        nextParams.set("groupBy", "service");
+      } else {
+        nextParams.delete("groupBy");
+      }
+      router.push(`${pathname}?${nextParams.toString()}`);
+    },
+    [pathname, router, searchParams],
+  );
 
   const { data: resourceLogs = [] } = useQuery({
     ...logsQuery,
@@ -78,9 +84,7 @@ function HomeContent() {
     <div className="h-screen p-4">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Logs</h1>
-        <Link href={toggleHref} className="text-sm underline">
-          {isGrouped ? "Show flat list" : "Group by service"}
-        </Link>
+        <Checkbox checked={isGrouped} onChange={handleGroupByServiceChange} label="Group by service" />
       </div>
 
       {isGrouped ? (
