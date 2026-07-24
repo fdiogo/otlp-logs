@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { useRef, useState } from "react";
+import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AnyValue, KeyValue } from "@/app/generated/opentelemetry/proto/common/v1/common";
 import type { LogRecord } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
 import { Time } from "./Time";
@@ -81,40 +82,70 @@ export function LogRecordsTable({ logRecords }: { logRecords: LogRecordWithResou
     });
   }
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const rowVirtualizer = useVirtualizer({
+    count: logRecords.length,
+    getScrollElement: () => scrollRef.current,
+    estimateSize: () => 37,
+    overscan: 10,
+  });
+  const virtualRows = rowVirtualizer.getVirtualItems();
+  const paddingTop = virtualRows.length > 0 ? virtualRows[0].start : 0;
+  const paddingBottom =
+    virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
+
   return (
-    <table className="w-full border-collapse text-left text-sm">
-      <thead>
-        <tr>
-          <th className="border-b p-2">Resource</th>
-          <th className="border-b p-2">Severity</th>
-          <th className="border-b p-2">Time</th>
-          <th className="border-b p-2">Body</th>
-        </tr>
-      </thead>
-      <tbody>
-        {logRecords.map((log, index) => (
-          <Fragment key={index}>
-            <tr
-              onClick={() => toggleExpanded(index)}
-              className="cursor-pointer hover:bg-black/5"
-            >
-              <td className="border-b p-2">{log.resourceLabel}</td>
-              <td className="border-b p-2">{log.severityText ?? log.severityNumber}</td>
-              <td className="border-b p-2">
-                <Time unixNano={log.timeUnixNano} />
-              </td>
-              <td className="border-b p-2">{renderAnyValue(log.body)}</td>
+    <div ref={scrollRef} className="h-[600px] overflow-auto">
+      <table className="w-full border-collapse text-left text-sm">
+        <thead>
+          <tr>
+            <th className="border-b p-2">Resource</th>
+            <th className="border-b p-2">Severity</th>
+            <th className="border-b p-2">Time</th>
+            <th className="border-b p-2">Body</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paddingTop > 0 && (
+            <tr>
+              <td colSpan={4} style={{ height: paddingTop }} />
             </tr>
-            {expanded.has(index) && (
-              <tr>
-                <td colSpan={4} className="border-b bg-black/2 p-2">
-                  <AttributesTable attributes={log.attributes ?? []} />
+          )}
+          {virtualRows.map((virtualRow) => {
+            const index = virtualRow.index;
+            const log = logRecords[index];
+            return (
+              <tr
+                key={index}
+                ref={rowVirtualizer.measureElement}
+                data-index={index}
+                onClick={() => toggleExpanded(index)}
+                className="cursor-pointer hover:bg-black/5 [&>td]:align-top"
+              >
+                <td className="border-b p-2">{log.resourceLabel}</td>
+                <td className="border-b p-2">{log.severityText ?? log.severityNumber}</td>
+                <td className="border-b p-2">
+                  <Time unixNano={log.timeUnixNano} />
+                </td>
+                <td className="border-b p-2">
+                  {renderAnyValue(log.body)}
+                  {expanded.has(index) && (
+                    <div className="mt-2 bg-black/2 p-2">
+                      <AttributesTable attributes={log.attributes ?? []} />
+                    </div>
+                  )}
                 </td>
               </tr>
-            )}
-          </Fragment>
-        ))}
-      </tbody>
-    </table>
+            );
+          })}
+          {paddingBottom > 0 && (
+            <tr>
+              <td colSpan={4} style={{ height: paddingBottom }} />
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
