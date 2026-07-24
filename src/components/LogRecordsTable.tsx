@@ -107,31 +107,38 @@ const DetailRow = memo(function DetailRow(props: {
   measureRef: (node: Element | null) => void;
 }) {
   const { item, columnCount, dataIndex, expanded, measureRef } = props;
-  if (!expanded) return null;
+  // Kept mounted (with content toggled inside) rather than returning null when collapsed: the
+  // virtualizer's ResizeObserver only re-measures a row while its element stays connected, so
+  // unmounting the row instead of shrinking its content leaves the last-measured (expanded)
+  // height stuck in the size cache, showing as blank space below.
   return (
     <Table.Row ref={measureRef} data-index={dataIndex}>
-      <Table.Cell colSpan={columnCount} className="border-panel-border bg-panel-header">
-        <div className="rounded-lg border border-panel-border bg-panel p-3">
-          <h4 className="text-xs font-medium text-panel-muted">Body</h4>
-          <hr className="border-panel-border-subtle my-1" />
-          <p className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{renderAnyValue(item.body)}</p>
-        </div>
-        <div className="mt-2 rounded-lg border border-panel-border bg-panel p-3">
-          <h4 className="text-xs font-medium text-panel-muted">Attributes</h4>
-          <hr className="border-panel-border-subtle my-1" />
-          {item.attributes.length === 0 ? (
-            <p className="mt-2 text-xs italic text-panel-subtle">No attributes</p>
-          ) : (
-            <div className="mt-2 flex flex-col gap-2">
-              {item.attributes.map((attribute, index) => (
-                <div key={attribute.key ?? index} className="font-mono text-xs">
-                  <div className="text-panel-subtle">{attribute.key}</div>
-                  <div className="whitespace-pre-wrap break-all text-panel-muted">{renderAnyValue(attribute.value)}</div>
-                </div>
-              ))}
+      <Table.Cell colSpan={columnCount} className={expanded ? "border-panel-border bg-panel-header" : "border-none p-0!"}>
+        {expanded && (
+          <>
+            <div className="rounded-lg border border-panel-border bg-panel p-3">
+              <h4 className="text-xs font-medium text-panel-muted">Body</h4>
+              <hr className="border-panel-border-subtle my-1" />
+              <p className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{renderAnyValue(item.body)}</p>
             </div>
-          )}
-        </div>
+            <div className="mt-2 rounded-lg border border-panel-border bg-panel p-3">
+              <h4 className="text-xs font-medium text-panel-muted">Attributes</h4>
+              <hr className="border-panel-border-subtle my-1" />
+              {item.attributes.length === 0 ? (
+                <p className="mt-2 text-xs italic text-panel-subtle">No attributes</p>
+              ) : (
+                <div className="mt-2 flex flex-col gap-2">
+                  {item.attributes.map((attribute, index) => (
+                    <div key={attribute.key ?? index} className="font-mono text-xs">
+                      <div className="text-panel-subtle">{attribute.key}</div>
+                      <div className="whitespace-pre-wrap break-all text-panel-muted">{renderAnyValue(attribute.value)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </Table.Cell>
     </Table.Row>
   );
