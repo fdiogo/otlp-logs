@@ -5,6 +5,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import type { AnyValue, KeyValue, LogRecord } from "@/queries/logsQuery";
 import { Time } from "@/design-system/Time";
 import { Badge } from "@/design-system/Badge";
+import { Table } from "@/design-system/Table";
 
 export type LogRecordWithResource = LogRecord & { resourceLabel?: string };
 
@@ -176,24 +177,16 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
 
   return (
     <div ref={scrollRef} className="h-150 overflow-auto rounded-lg border border-panel-border bg-panel">
-      <table className="w-full border-collapse text-left text-sm">
-        <thead className="sticky top-0 z-10 bg-panel-header">
-          <tr>
-            {!grouped && (
-              <th className="w-px whitespace-nowrap border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
-                Resource
-              </th>
-            )}
-            <th className="w-px whitespace-nowrap border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
-              Severity
-            </th>
-            <th className="w-px whitespace-nowrap border-b border-panel-border px-3 py-2 font-medium text-panel-muted">
-              Time
-            </th>
-            <th className="border-b border-panel-border px-3 py-2 font-medium text-panel-muted">Body</th>
-          </tr>
-        </thead>
-        <tbody>
+      <Table>
+        <Table.Header className="sticky top-0 z-10 bg-panel-header">
+          <Table.Row>
+            {!grouped && <Table.Head className="w-px whitespace-nowrap">Resource</Table.Head>}
+            <Table.Head className="w-px whitespace-nowrap">Severity</Table.Head>
+            <Table.Head className="w-px whitespace-nowrap">Time</Table.Head>
+            <Table.Head>Body</Table.Head>
+          </Table.Row>
+        </Table.Header>
+        <Table.Body>
           {paddingTop > 0 && (
             <tr>
               <td colSpan={columnCount} style={{ height: paddingTop }} />
@@ -204,8 +197,8 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
 
             if (row.type === "header") {
               return (
-                <tr key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
-                  <td colSpan={columnCount} className="p-0!">
+                <Table.Row key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
+                  <Table.Cell colSpan={columnCount} className="border-none p-0!">
                     <button
                       onClick={() => toggleGroup(row.group.key)}
                       className="flex w-full items-center gap-2 border-b border-panel-border bg-panel-header px-3 py-2 text-left text-sm font-medium hover:bg-panel-border-subtle"
@@ -214,18 +207,15 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
                       <span>{row.group.label}</span>
                       <span className="text-panel-subtle">({row.group.logRecords.length})</span>
                     </button>
-                  </td>
-                </tr>
+                  </Table.Cell>
+                </Table.Row>
               );
             }
 
             if (row.type === "detail") {
               return (
-                <tr key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
-                  <td
-                    colSpan={columnCount}
-                    className="border-b border-panel-border-subtle bg-panel-header px-3 py-2"
-                  >
+                <Table.Row key={row.rowKey} ref={rowVirtualizer.measureElement} data-index={virtualRow.index}>
+                  <Table.Cell colSpan={columnCount} className="border-panel-border bg-panel-header">
                     <div className="rounded-lg border border-panel-border bg-panel p-3">
                       <h4 className="text-xs font-medium text-panel-muted">Body</h4>
                       <hr className="border-panel-border-subtle my-1" />
@@ -236,38 +226,38 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
                     <div className="mt-2">
                       <AttributesTable attributes={row.log.attributes ?? []} />
                     </div>
-                  </td>
-                </tr>
+                  </Table.Cell>
+                </Table.Row>
               );
             }
 
             const log = row.log;
             const tone = severityTone(log);
             return (
-              <tr
+              <Table.Row
                 key={row.rowKey}
                 ref={rowVirtualizer.measureElement}
                 data-index={virtualRow.index}
                 onClick={() => toggleExpanded(row.rowKey)}
-                className="cursor-pointer align-top [&>td]:border-b [&>td]:border-panel-border-subtle [&>td]:px-3 [&>td]:py-2 hover:bg-panel-header"
+                className="cursor-pointer hover:bg-panel-header"
               >
                 {!grouped && (
-                  <td className="w-px whitespace-nowrap align-top font-medium text-panel-muted">
+                  <Table.Cell className="w-px whitespace-nowrap font-medium text-panel-muted">
                     {log.resourceLabel}
-                  </td>
+                  </Table.Cell>
                 )}
-                <td className="w-px whitespace-nowrap align-top">
+                <Table.Cell className="w-px whitespace-nowrap">
                   <Badge tone={tone}>{severityLabel(log)}</Badge>
-                </td>
-                <td className="w-px whitespace-nowrap align-top font-mono text-xs text-panel-muted">
+                </Table.Cell>
+                <Table.Cell className="w-px whitespace-nowrap font-mono text-xs text-panel-muted">
                   <Time unixNano={log.timeUnixNano} />
-                </td>
-                <td className="align-top">
+                </Table.Cell>
+                <Table.Cell>
                   <p title={renderAnyValue(log.body)} className="line-clamp-2 wrap-break-word">
                     {renderAnyValue(log.body)}
                   </p>
-                </td>
-              </tr>
+                </Table.Cell>
+              </Table.Row>
             );
           })}
           {paddingBottom > 0 && (
@@ -275,8 +265,8 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
               <td colSpan={columnCount} style={{ height: paddingBottom }} />
             </tr>
           )}
-        </tbody>
-      </table>
+        </Table.Body>
+      </Table>
     </div>
   );
 }
