@@ -17,7 +17,11 @@ export function ServiceGroupSection({ group }: { group: ServiceGroup }) {
         <span>{group.label}</span>
         <span className="text-black/50">({group.logRecords.length})</span>
       </button>
-      {expanded && <LogRecordsTable logRecords={group.logRecords} />}
+      {expanded && (
+        <LogRecordsTable
+          logRecords={group.logRecords.map((logRecord) => ({ ...logRecord, resourceLabel: group.label }))}
+        />
+      )}
     </section>
   );
 }

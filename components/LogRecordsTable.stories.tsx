@@ -1,32 +1,35 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { expect } from "storybook/test";
-import { LogRecordsTable } from "./LogRecordsTable";
-import type { LogRecord } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
+import { LogRecordsTable, type LogRecordWithResource } from "./LogRecordsTable";
 
-function logRecord(overrides: Partial<LogRecord>): LogRecord {
+function logRecord(overrides: Partial<LogRecordWithResource>): LogRecordWithResource {
   return {
     timeUnixNano: "1712000000000000000",
     severityText: "INFO",
     body: { stringValue: "request completed" },
     attributes: [],
+    resourceLabel: "checkout",
     ...overrides,
   };
 }
 
-const logRecords: LogRecord[] = [
+const logRecords: LogRecordWithResource[] = [
   logRecord({
     severityText: "INFO",
     body: { stringValue: "user logged in" },
     attributes: [{ key: "user.id", value: { stringValue: "42" } }],
+    resourceLabel: "auth",
   }),
   logRecord({
     severityText: "ERROR",
     body: { stringValue: "payment failed" },
     attributes: [{ key: "order.id", value: { stringValue: "ord_123" } }],
+    resourceLabel: "checkout",
   }),
   logRecord({
     severityText: "WARN",
     body: { stringValue: "retrying request" },
+    resourceLabel: "checkout",
   }),
 ];
 

@@ -1,24 +1,11 @@
-import type { Resource } from "@/app/generated/opentelemetry/proto/resource/v1/resource";
 import type { LogRecord, ResourceLogs } from "@/app/generated/opentelemetry/proto/logs/v1/logs";
-
-/** OpenTelemetry's own convention for a resource with no service.name attribute set. */
-const UNKNOWN_SERVICE_NAME = "unknown_service";
+import { getResourceLabel } from "./resourceLabel";
 
 export interface ServiceGroup {
   /** Stable identity: service.namespace + service.name, namespace omitted when unset. */
   key: string;
   label: string;
   logRecords: LogRecord[];
-}
-
-function getStringAttribute(resource: Resource | undefined, key: string): string | undefined {
-  return resource?.attributes?.find((attribute) => attribute.key === key)?.value?.stringValue;
-}
-
-function getServiceGroupKey(resource: Resource | undefined): string {
-  const namespace = getStringAttribute(resource, "service.namespace");
-  const name = getStringAttribute(resource, "service.name") ?? UNKNOWN_SERVICE_NAME;
-  return namespace ? `${namespace}/${name}` : name;
 }
 
 /**
@@ -33,7 +20,7 @@ export function groupLogRecordsByService(resourceLogs: ResourceLogs[]): ServiceG
     const logRecords = (resourceLog.scopeLogs ?? []).flatMap((scopeLog) => scopeLog.logRecords ?? []);
     if (logRecords.length === 0) continue;
 
-    const key = getServiceGroupKey(resourceLog.resource);
+    const key = getResourceLabel(resourceLog.resource);
     const existing = groups.get(key);
     if (existing) {
       existing.logRecords.push(...logRecords);

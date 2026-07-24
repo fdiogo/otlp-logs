@@ -8,6 +8,7 @@ import { logsQuery } from "@/queries/logsQuery";
 import { bucketLogRecords } from "@/queries/bucketLogRecords";
 import { bucketLogRecordsByService } from "@/queries/bucketLogRecordsByService";
 import { groupLogRecordsByService } from "@/queries/serviceGroup";
+import { getResourceLabel } from "@/queries/resourceLabel";
 import { LogHistogram } from "@/components/LogHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ServiceGroupSection } from "@/components/ServiceGroupSection";
@@ -40,9 +41,12 @@ function HomeContent() {
     select: (data) => data?.resourceLogs ?? [],
   });
 
-  const logRecords = resourceLogs.flatMap((resourceLog) =>
-    (resourceLog.scopeLogs ?? []).flatMap((scopeLog) => scopeLog.logRecords ?? []),
-  );
+  const logRecords = resourceLogs.flatMap((resourceLog) => {
+    const resourceLabel = getResourceLabel(resourceLog.resource);
+    return (resourceLog.scopeLogs ?? []).flatMap((scopeLog) =>
+      (scopeLog.logRecords ?? []).map((logRecord) => ({ ...logRecord, resourceLabel })),
+    );
+  });
   const serviceGroups = groupLogRecordsByService(resourceLogs);
 
   return (
