@@ -76,13 +76,19 @@ function FlatTooltipContent({
 }: {
   label?: string | number;
   active?: boolean;
-  payload?: unknown[];
+  payload?: { value?: number }[];
   bucketDurationMs: number;
 }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg border border-panel-border bg-panel px-3 py-2 text-xs text-panel-muted shadow-sm">
-      {formatBucketTick(Number(label), bucketDurationMs)}
+    <div className="rounded-lg border border-panel-border bg-panel px-3 py-2 text-xs shadow-sm">
+      <div className="font-medium text-panel-muted">
+        {formatBucketTick(Number(label), bucketDurationMs)}
+      </div>
+      <div className="mt-1 flex justify-between gap-4 text-panel-muted">
+        <span>Count</span>
+        <span className="tabular-nums font-semibold">{payload[0]?.value ?? 0}</span>
+      </div>
     </div>
   );
 }
