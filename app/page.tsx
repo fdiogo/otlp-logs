@@ -68,7 +68,17 @@ function HomeContent() {
   const logItems = useMemo(() => {
     function toNativeValue(value: AnyValue | undefined): unknown {
       if (value === undefined) return undefined;
-      if (value.stringValue !== undefined) return value.stringValue;
+      if (value.stringValue !== undefined) {
+        const trimmed = value.stringValue.trim();
+        if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+          try {
+            return JSON.parse(trimmed);
+          } catch {
+            // Not actually JSON; fall through to the raw string.
+          }
+        }
+        return value.stringValue;
+      }
       if (value.boolValue !== undefined) return value.boolValue;
       if (value.intValue !== undefined) return value.intValue;
       if (value.doubleValue !== undefined) return value.doubleValue;

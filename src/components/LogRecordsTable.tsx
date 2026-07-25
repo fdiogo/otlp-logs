@@ -41,6 +41,126 @@ function renderValue(value: unknown): string {
   return "";
 }
 
+/**
+ * Recursive, syntax-highlighted rendering of a JSON-like value; used for the contents of
+ * arrays/objects. `compact` renders everything on one line (no indentation/newlines), for use
+ * in constrained spaces like a table cell.
+ */
+function JsonNode(props: { value: unknown; indent: number; compact?: boolean }) {
+  const { value, indent, compact } = props;
+  if (value === undefined || value === null) {
+    return <span className="italic text-panel-subtle">null</span>;
+  }
+  if (typeof value === "string") {
+    return <span className="text-emerald-700">{JSON.stringify(value)}</span>;
+  }
+  if (typeof value === "number") {
+    return <span className="text-blue-700">{value}</span>;
+  }
+  if (typeof value === "boolean") {
+    return <span className="text-amber-700">{String(value)}</span>;
+  }
+  if (value instanceof Uint8Array) {
+    return <span className="text-purple-700">{JSON.stringify(Buffer.from(value).toString("base64"))}</span>;
+  }
+  if (Array.isArray(value)) {
+    if (value.length === 0) return <span>[]</span>;
+    if (compact) {
+      return (
+        <>
+          {"["}
+          {value.map((entry, index) => (
+            <span key={index}>
+              <JsonNode value={entry} indent={0} compact />
+              {index < value.length - 1 ? ", " : ""}
+            </span>
+          ))}
+          {"]"}
+        </>
+      );
+    }
+    const pad = "  ".repeat(indent);
+    const padChild = "  ".repeat(indent + 1);
+    return (
+      <>
+        {"[\n"}
+        {value.map((entry, index) => (
+          <span key={index}>
+            {padChild}
+            <JsonNode value={entry} indent={indent + 1} />
+            {index < value.length - 1 ? "," : ""}
+            {"\n"}
+          </span>
+        ))}
+        {pad}
+        {"]"}
+      </>
+    );
+  }
+  const entries = Object.entries(value);
+  if (entries.length === 0) return <span>{"{}"}</span>;
+  if (compact) {
+    return (
+      <>
+        {"{"}
+        {entries.map(([key, entry], index) => (
+          <span key={key}>
+            <span className="text-panel-subtle">{JSON.stringify(key)}</span>
+            {": "}
+            <JsonNode value={entry} indent={0} compact />
+            {index < entries.length - 1 ? ", " : ""}
+          </span>
+        ))}
+        {"}"}
+      </>
+    );
+  }
+  const pad = "  ".repeat(indent);
+  const padChild = "  ".repeat(indent + 1);
+  return (
+    <>
+      {"{\n"}
+      {entries.map(([key, entry], index) => (
+        <span key={key}>
+          {padChild}
+          <span className="text-panel-subtle">{JSON.stringify(key)}</span>
+          {": "}
+          <JsonNode value={entry} indent={indent + 1} />
+          {index < entries.length - 1 ? "," : ""}
+          {"\n"}
+        </span>
+      ))}
+      {pad}
+      {"}"}
+    </>
+  );
+}
+
+/** Type-aware rendering of a body/attribute value: JSON with syntax highlighting for arrays/objects, code font for scalars. */
+function ValueDisplay(props: { value: unknown }) {
+  const { value } = props;
+  if (value === undefined || value === null) {
+    return <span className="text-xs italic text-panel-subtle">null</span>;
+  }
+  if (typeof value === "string") {
+    return <p className="whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{value}</p>;
+  }
+  if (typeof value === "number") {
+    return <p className="font-mono text-xs text-blue-700">{value}</p>;
+  }
+  if (typeof value === "boolean") {
+    return <p className="font-mono text-xs text-amber-700">{String(value)}</p>;
+  }
+  if (value instanceof Uint8Array) {
+    return <p className="whitespace-pre-wrap break-all font-mono text-xs text-purple-700">{Buffer.from(value).toString("base64")}</p>;
+  }
+  return (
+    <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-panel-muted">
+      <JsonNode value={value} indent={0} />
+    </pre>
+  );
+}
+
 function severityRank(item: Item): number {
   if (typeof item.severityNumber === "number") return item.severityNumber;
   const text = item.severityText?.toUpperCase() ?? "";
@@ -73,6 +193,7 @@ const LogRow = memo(function LogRow(props: {
   const { item, grouped, rowKey, dataIndex, measureRef, onToggle } = props;
   const tone = severityTone(item);
   const body = renderValue(item.body);
+  const isJsonBody = typeof item.body === "object" && item.body !== null && !(item.body instanceof Uint8Array);
   return (
     <Table.Row
       ref={measureRef}
@@ -88,8 +209,8 @@ const LogRow = memo(function LogRow(props: {
         <Time unixNano={item.timeUnixNano} />
       </Table.Cell>
       <Table.Cell>
-        <p title={body} className="line-clamp-2 wrap-break-word">
-          {body}
+        <p title={body} className={`line-clamp-2 wrap-break-word ${isJsonBody ? "font-mono text-xs" : ""}`}>
+          {isJsonBody ? <JsonNode value={item.body} indent={0} compact /> : body}
         </p>
       </Table.Cell>
     </Table.Row>
@@ -116,7 +237,9 @@ const DetailRow = memo(function DetailRow(props: {
             <div className="rounded-lg border border-panel-border bg-panel p-3">
               <h4 className="text-xs font-medium text-panel-muted">Body</h4>
               <hr className="border-panel-border-subtle my-1" />
-              <p className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{renderValue(item.body)}</p>
+              <div className="mt-2">
+                <ValueDisplay value={item.body} />
+              </div>
             </div>
             <div className="mt-2 rounded-lg border border-panel-border bg-panel p-3">
               <h4 className="text-xs font-medium text-panel-muted">Attributes</h4>
@@ -126,9 +249,9 @@ const DetailRow = memo(function DetailRow(props: {
               ) : (
                 <div className="mt-2 flex flex-col gap-2">
                   {item.attributes.map((attribute, index) => (
-                    <div key={attribute.key ?? index} className="font-mono text-xs">
-                      <div className="text-panel-subtle">{attribute.key}</div>
-                      <div className="whitespace-pre-wrap break-all text-panel-muted">{renderValue(attribute.value)}</div>
+                    <div key={attribute.key ?? index}>
+                      <div className="font-mono text-xs text-panel-subtle">{attribute.key}</div>
+                      <ValueDisplay value={attribute.value} />
                     </div>
                   ))}
                 </div>
