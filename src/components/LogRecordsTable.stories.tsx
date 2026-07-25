@@ -7,7 +7,7 @@ type LogItem = ComponentProps<typeof LogRecordsTable>["items"][number];
 
 function logItem(overrides: Partial<LogItem>): LogItem {
   return {
-    groupKey: "checkout",
+    resourceKey: "checkout",
     timeUnixNano: "1712000000000000000",
     severityText: "INFO",
     body: "request completed",
@@ -18,13 +18,13 @@ function logItem(overrides: Partial<LogItem>): LogItem {
 
 const items: LogItem[] = [
   logItem({
-    groupKey: "auth",
+    resourceKey: "auth",
     severityText: "INFO",
     body: "user logged in",
     attributes: [{ key: "user.id", value: "42" }],
   }),
   logItem({
-    groupKey: "checkout",
+    resourceKey: "checkout",
     severityText: "ERROR",
     body: "payment failed",
     attributes: [
@@ -36,7 +36,7 @@ const items: LogItem[] = [
     ],
   }),
   logItem({
-    groupKey: "checkout",
+    resourceKey: "checkout",
     severityText: "WARN",
     body: "retrying request",
   }),
@@ -52,16 +52,16 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
-  args: { items, variant: "flat" },
+  args: { items, groupBy: null },
 };
 
 export const Empty: Story = {
-  args: { items: [], variant: "flat" },
+  args: { items: [], groupBy: null },
 };
 
 // Clicking a row reveals its attributes.
 export const ExpandRow: Story = {
-  args: { items, variant: "flat" },
+  args: { items, groupBy: null },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByText(/payment failed/));
     await expect(await canvas.findByText(/order.id/)).toBeVisible();
@@ -70,7 +70,7 @@ export const ExpandRow: Story = {
 
 // Groups start collapsed: only header rows with counts are visible.
 export const Grouped: Story = {
-  args: { items, variant: "grouped" },
+  args: { items, groupBy: "resource" },
   play: async ({ canvas }) => {
     await expect(canvas.getByText("checkout")).toBeVisible();
     await expect(canvas.getByText("(2)")).toBeVisible();
@@ -80,7 +80,7 @@ export const Grouped: Story = {
 
 // Expanding a group inserts its log rows into the same virtualized list.
 export const GroupedExpanded: Story = {
-  args: { items, variant: "grouped" },
+  args: { items, groupBy: "resource" },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByRole("button", { name: /checkout/i }));
     await expect(await canvas.findByText("payment failed")).toBeVisible();
@@ -93,7 +93,7 @@ export const AllValueTypes: Story = {
   args: {
     items: [
       logItem({
-        groupKey: "demo",
+        resourceKey: "demo",
         body: "attribute value types",
         attributes: [
           { key: "example.string", value: "hello world" },
@@ -106,7 +106,7 @@ export const AllValueTypes: Story = {
         ],
       }),
     ],
-    variant: "flat",
+    groupBy: null,
   },
   play: async ({ canvas, userEvent }) => {
     await userEvent.click(canvas.getByText(/attribute value types/));

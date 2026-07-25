@@ -9,16 +9,16 @@ import { Table } from "@/design-system/Table";
 
 interface LogRecordsTableProps {
   items: {
-    /** Ignored when `variant` is `"flat"`. Groups by this value and used as the group's display label. */
-    groupKey: string;
+    /** Ignored when `groupBy` is unset. Groups by this value and used as the group's display label. */
+    resourceKey: string;
     severityNumber?: number;
     severityText?: string;
     timeUnixNano: string;
     body: unknown;
     attributes: { key: string; value: unknown }[];
   }[];
-  /** `"grouped"` partitions rows by `groupKey` under collapsible headers. `"flat"` renders a single row list. */
-  variant: "flat" | "grouped";
+  /** `"resource"` partitions rows by `resourceKey` under collapsible headers. Unset renders a single row list. */
+  groupBy?: "resource" | null;
   className?: string;
 }
 
@@ -267,7 +267,7 @@ const LogRow = memo(function LogRow(props: {
         <Time unixNano={item.timeUnixNano} />
       </Table.Cell>
       {!grouped && (
-        <Table.Cell className="w-px whitespace-nowrap font-medium text-panel-muted">{item.groupKey}</Table.Cell>
+        <Table.Cell className="w-px whitespace-nowrap font-medium text-panel-muted">{item.resourceKey}</Table.Cell>
       )}
       <Table.Cell>
         <p title={body} className={`line-clamp-2 wrap-break-word ${isJsonBody ? "font-mono text-xs" : ""}`}>
@@ -339,18 +339,18 @@ const DetailRow = memo(function DetailRow(props: {
 });
 
 export function LogRecordsTable(props: LogRecordsTableProps) {
-  const { items, variant, className } = props;
-  const grouped = variant === "grouped";
+  const { items, groupBy, className } = props;
+  const grouped = groupBy === "resource";
 
   const groups = useMemo(() => {
     if (!grouped) return undefined;
     const byKey = new Map<string, { key: string; items: Item[] }>();
     for (const item of items) {
-      const existing = byKey.get(item.groupKey);
+      const existing = byKey.get(item.resourceKey);
       if (existing) {
         existing.items.push(item);
       } else {
-        byKey.set(item.groupKey, { key: item.groupKey, items: [item] });
+        byKey.set(item.resourceKey, { key: item.resourceKey, items: [item] });
       }
     }
     return [...byKey.values()].sort((a, b) => b.items.length - a.items.length);

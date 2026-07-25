@@ -91,7 +91,7 @@ function HomeContent() {
     }
 
     return sortedLogRecordsWithLabel.map((record) => ({
-      groupKey: record.resourceLabel,
+      resourceKey: record.resourceLabel,
       severityNumber: record.severityNumber,
       severityText: record.severityText,
       timeUnixNano: record.timeUnixNano ?? "0",
@@ -156,7 +156,7 @@ function HomeContent() {
           ))}
         </div>
       ) : (
-        <LogRecordsTable items={logItems} variant={isGrouped ? "grouped" : "flat"} className="min-h-100 flex-1" />
+        <LogRecordsTable items={logItems} groupBy={isGrouped ? "resource" : null} className="min-h-100 flex-1" />
       )}
     </div>
   );
