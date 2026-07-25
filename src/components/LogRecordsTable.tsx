@@ -257,17 +257,19 @@ const LogRow = memo(function LogRow(props: {
       onClick={() => onToggle(rowKey)}
       className={cn("cursor-pointer hover:bg-panel-header", expanded && "bg-panel-header")}
     >
-      <Table.Cell className={cn("w-px whitespace-nowrap border-l-2", DETAIL_TONE_BORDER[tone])}>
+      <Table.Cell className={cn("whitespace-nowrap border-l-2", DETAIL_TONE_BORDER[tone])}>
         <span className="flex items-center gap-1.5">
           <ExpandChevron expanded={expanded} />
           <Badge tone={tone}>{severityLabel(item)}</Badge>
         </span>
       </Table.Cell>
-      <Table.Cell className="w-px whitespace-nowrap font-mono text-xs text-panel-muted">
+      <Table.Cell className="whitespace-nowrap font-mono text-xs text-panel-muted">
         <Time unixNano={item.timeUnixNano} />
       </Table.Cell>
       {!grouped && (
-        <Table.Cell className="w-px whitespace-nowrap font-medium text-panel-muted">{item.resourceKey}</Table.Cell>
+        <Table.Cell className="overflow-hidden text-ellipsis whitespace-nowrap font-medium text-panel-muted" title={item.resourceKey}>
+          {item.resourceKey}
+        </Table.Cell>
       )}
       <Table.Cell>
         <p title={body} className={`line-clamp-2 wrap-break-word ${isJsonBody ? "font-mono text-xs" : ""}`}>
@@ -433,12 +435,12 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
 
   return (
     <div ref={scrollRef} className={cn("overflow-auto rounded-lg border border-panel-border bg-panel", className)}>
-      <Table>
+      <Table className="table-fixed">
         <Table.Header className="sticky top-0 z-10 bg-panel-header">
           <Table.Row>
-            <Table.Head className="w-px min-w-30 whitespace-nowrap">Severity</Table.Head>
-            <Table.Head className="w-px min-w-44 whitespace-nowrap">Time</Table.Head>
-            {!grouped && <Table.Head className="w-px min-w-50 whitespace-nowrap">Resource</Table.Head>}
+            <Table.Head className="w-30 whitespace-nowrap">Severity</Table.Head>
+            <Table.Head className="w-44 whitespace-nowrap">Time</Table.Head>
+            {!grouped && <Table.Head className="w-50 whitespace-nowrap">Resource</Table.Head>}
             <Table.Head>Body</Table.Head>
           </Table.Row>
         </Table.Header>
