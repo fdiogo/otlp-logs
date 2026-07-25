@@ -104,7 +104,7 @@ function HomeContent() {
   }, [sortedLogRecordsWithLabel]);
 
   return (
-    <div className="h-screen p-4">
+    <div className="flex h-screen flex-col p-4">
       <div className="mb-3 flex items-center justify-between">
         <h1 className="text-lg font-semibold">Logs</h1>
         <div className="flex items-center gap-2">
@@ -129,17 +129,17 @@ function HomeContent() {
       </div>
 
       {isPending ? (
-        <div className="mb-4 flex h-40 items-end gap-1.5 rounded-lg border border-panel-border bg-panel p-3">
+        <div className="mb-4 flex h-56 shrink-0 items-end gap-1.5 rounded-lg border border-panel-border bg-panel p-3">
           {[30, 45, 35, 60, 50, 70, 55, 80, 65, 90, 75, 60, 85, 50, 40, 55, 35, 45, 30, 40].map((heightPercent, index) => (
             <Skeleton key={index} className="flex-1" style={{ height: `${heightPercent}%` }} />
           ))}
         </div>
       ) : (
-        <TimeHistogram items={histogramItems} variant={isGrouped ? "grouped" : "flat"} className="mb-4" />
+        <TimeHistogram items={histogramItems} variant={isGrouped ? "grouped" : "flat"} height={224} className="mb-4 shrink-0" />
       )}
 
       {isPending ? (
-        <div className="h-150 overflow-hidden rounded-lg border border-panel-border bg-panel">
+        <div className="min-h-100 flex-1 overflow-hidden rounded-lg border border-panel-border bg-panel">
           <div className="flex items-center gap-3 border-b border-panel-border bg-panel-header px-3 py-2">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-4 w-16" />
@@ -156,7 +156,7 @@ function HomeContent() {
           ))}
         </div>
       ) : (
-        <LogRecordsTable items={logItems} variant={isGrouped ? "grouped" : "flat"} />
+        <LogRecordsTable items={logItems} variant={isGrouped ? "grouped" : "flat"} className="min-h-100 flex-1" />
       )}
     </div>
   );

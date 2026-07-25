@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { cn } from "cnfast";
 import { Time } from "@/design-system/Time";
 import { Badge } from "@/design-system/Badge";
 import { Table } from "@/design-system/Table";
@@ -18,6 +19,7 @@ interface LogRecordsTableProps {
   }[];
   /** `"grouped"` partitions rows by `groupKey` under collapsible headers. `"flat"` renders a single row list. */
   variant: "flat" | "grouped";
+  className?: string;
 }
 
 type Item = LogRecordsTableProps["items"][number];
@@ -265,7 +267,7 @@ const DetailRow = memo(function DetailRow(props: {
 });
 
 export function LogRecordsTable(props: LogRecordsTableProps) {
-  const { items, variant } = props;
+  const { items, variant, className } = props;
   const grouped = variant === "grouped";
 
   const groups = useMemo(() => {
@@ -357,7 +359,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
   const paddingBottom = virtualRows.length > 0 ? rowVirtualizer.getTotalSize() - virtualRows[virtualRows.length - 1].end : 0;
 
   return (
-    <div ref={scrollRef} className="h-150 overflow-auto rounded-lg border border-panel-border bg-panel">
+    <div ref={scrollRef} className={cn("overflow-auto rounded-lg border border-panel-border bg-panel", className)}>
       <Table>
         <Table.Header className="sticky top-0 z-10 bg-panel-header">
           <Table.Row>
