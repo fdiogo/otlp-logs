@@ -356,12 +356,13 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
     return [...byKey.values()].sort((a, b) => b.items.length - a.items.length);
   }, [grouped, items]);
 
-  // Groups start collapsed so the initial row list stays bounded regardless of dataset size.
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(() => new Set(groups?.map((group) => group.key)));
+  // Tracks opt-in expansion so groups default to collapsed even when a group's key only
+  // starts existing after the initial render (e.g. switching from flat to grouped view).
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const toggleGroup = useCallback((key: string) => {
-    setCollapsedGroups((prev) => {
+    setExpandedGroups((prev) => {
       const next = new Set(prev);
       if (next.has(key)) {
         next.delete(key);
@@ -396,7 +397,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
     }
     const result: Row[] = [];
     for (const group of groups) {
-      const collapsed = collapsedGroups.has(group.key);
+      const collapsed = !expandedGroups.has(group.key);
       result.push({ type: "header", rowKey: `header:${group.key}`, group, collapsed });
       if (!collapsed) {
         for (const [index, item] of group.items.entries()) {
@@ -407,7 +408,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
       }
     }
     return result;
-  }, [groups, items, collapsedGroups, expanded]);
+  }, [groups, items, expandedGroups, expanded]);
 
   const columnCount = grouped ? 3 : 4;
 
