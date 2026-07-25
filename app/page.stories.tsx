@@ -1,7 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Home from "./page";
-import type { ExportLogsServiceRequest, LogRecord } from "@/queries/logsQuery";
+import { logsQuery } from "@/queries/logsQuery";
+
+type LogsData = Awaited<ReturnType<NonNullable<typeof logsQuery.queryFn>>>;
+type ResourceLog = NonNullable<LogsData["resourceLogs"]>[number];
+type ScopeLog = NonNullable<ResourceLog["scopeLogs"]>[number];
+type LogRecord = NonNullable<ScopeLog["logRecords"]>[number];
 
 const BASE_TIME_MS = Date.UTC(2024, 3, 1, 12, 0, 0);
 const MINUTE_NS = BigInt(60_000_000_000);
@@ -33,7 +38,7 @@ function service(name: string, records: LogRecord[]) {
   };
 }
 
-const mockLogs: ExportLogsServiceRequest = {
+const mockLogs: LogsData = {
   resourceLogs: [
     service("checkout", [
       logRecord(0, "INFO", "checkout started", { "order.id": "ord_1" }),

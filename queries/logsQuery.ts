@@ -1,11 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
 
-export interface KeyValue {
+interface KeyValue {
   key?: string;
   value?: AnyValue;
 }
 
-export interface AnyValue {
+interface AnyValue {
   stringValue?: string;
   boolValue?: boolean;
   intValue?: string;
@@ -15,19 +15,19 @@ export interface AnyValue {
   bytesValue?: Uint8Array;
 }
 
-export interface InstrumentationScope {
+interface InstrumentationScope {
   name?: string;
   version?: string;
   attributes?: KeyValue[];
   droppedAttributesCount?: number;
 }
 
-export interface Resource {
+interface Resource {
   attributes?: KeyValue[];
   droppedAttributesCount?: number;
 }
 
-export interface LogRecord {
+interface LogRecord {
   timeUnixNano?: string;
   observedTimeUnixNano?: string;
   severityNumber?: number;
@@ -41,13 +41,13 @@ export interface LogRecord {
   eventName?: string;
 }
 
-export interface ScopeLogs {
+interface ScopeLogs {
   scope?: InstrumentationScope;
   logRecords?: LogRecord[];
   schemaUrl?: string;
 }
 
-export interface ResourceLogs {
+interface ResourceLogs {
   resource?: Resource;
   scopeLogs?: ScopeLogs[];
   schemaUrl?: string;
@@ -56,7 +56,7 @@ export interface ResourceLogs {
 /**
  * This type was auto-generated using ts-proto
  */
-export interface ExportLogsServiceRequest {
+interface ExportLogsServiceRequest {
   resourceLogs?: ResourceLogs[];
 }
 

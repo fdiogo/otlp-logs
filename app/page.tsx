@@ -4,7 +4,7 @@ import { Suspense, useDeferredValue, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Group, List } from "lucide-react";
-import { logsQuery, type AnyValue } from "@/queries/logsQuery";
+import { logsQuery } from "@/queries/logsQuery";
 import { TimeHistogram } from "@/design-system/TimeHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ToggleGroup } from "@/design-system/ToggleGroup";
@@ -78,6 +78,8 @@ function HomeContent() {
   );
 
   const logItems = useMemo(() => {
+    type AnyValue = NonNullable<(typeof sortedLogRecordsWithLabel)[number]["body"]>;
+
     function toNativeValue(value: AnyValue | undefined): unknown {
       if (value === undefined) return undefined;
       if (value.stringValue !== undefined) {
