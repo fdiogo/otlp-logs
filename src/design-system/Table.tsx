@@ -3,7 +3,7 @@ import { cn } from "cnfast";
 
 function TableRoot(props: ComponentProps<"table">) {
   const { className, ...rest } = props;
-  return <table className={cn("w-full border-collapse text-left text-sm", className)} {...rest} />;
+  return <table className={cn("w-full border-separate border-spacing-0 text-left text-sm", className)} {...rest} />;
 }
 
 function Header(props: ComponentProps<"thead">) {
