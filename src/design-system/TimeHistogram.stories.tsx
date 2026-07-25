@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
-import { Histogram } from "./Histogram";
-import type { HistogramProps } from "./Histogram";
+import { TimeHistogram } from "./TimeHistogram";
+import type { TimeHistogramProps } from "./TimeHistogram";
 
 const BASE_TIME = Date.UTC(2024, 3, 1, 12, 0, 0);
 
@@ -16,14 +16,14 @@ function mulberry32(seed: number) {
   };
 }
 
-function buildItems(spanMs: number, count: number, seed: number): HistogramProps["items"] {
+function buildItems(spanMs: number, count: number, seed: number): TimeHistogramProps["items"] {
   const random = mulberry32(seed);
   return Array.from({ length: count }, () => ({
     timeUnixNano: (BigInt(BASE_TIME + Math.floor(random() * spanMs)) * BigInt(1_000_000)).toString(),
   }));
 }
 
-function buildGroupedItems(spanMs: number, groups: [groupKey: string, count: number][], seed: number): HistogramProps["items"] {
+function buildGroupedItems(spanMs: number, groups: [groupKey: string, count: number][], seed: number): TimeHistogramProps["items"] {
   const random = mulberry32(seed);
   return groups.flatMap(([groupKey, count]) =>
     Array.from({ length: count }, () => ({
@@ -34,10 +34,10 @@ function buildGroupedItems(spanMs: number, groups: [groupKey: string, count: num
 }
 
 const meta = {
-  title: "Design System/Histogram",
-  component: Histogram,
+  title: "Design System/TimeHistogram",
+  component: TimeHistogram,
   tags: ["ai-generated"],
-} satisfies Meta<typeof Histogram>;
+} satisfies Meta<typeof TimeHistogram>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

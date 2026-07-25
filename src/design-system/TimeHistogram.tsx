@@ -5,7 +5,7 @@ import { Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } fro
 import { cn } from "cnfast";
 import { Time } from "@/design-system/Time";
 
-export interface HistogramProps {
+export interface TimeHistogramProps {
   items: {
     /** ns since epoch, used to bucket this item. */
     timeUnixNano: string | number;
@@ -62,7 +62,7 @@ const MAX_BUCKET_COUNT = 75;
 const DEFAULT_GROUP_KEY = "__default__";
 const OTHER_GROUP_KEY = "Other";
 
-interface HistogramBucket {
+interface TimeHistogramBucket {
   time: number;
   counts: Record<string, number>;
   total: number;
@@ -84,7 +84,7 @@ const DEFAULT_GROUP_COLORS = [
 const TOOLTIP_WRAPPER_STYLE = { zIndex: 50 };
 const LEGEND_WRAPPER_STYLE = { fontSize: 12, color: "var(--panel-foreground-muted)" };
 
-function HistogramTooltipContent({
+function TimeHistogramTooltipContent({
   active,
   label,
   payload,
@@ -93,7 +93,7 @@ function HistogramTooltipContent({
 }: {
   active?: boolean;
   label?: string | number;
-  payload?: { payload?: HistogramBucket }[];
+  payload?: { payload?: TimeHistogramBucket }[];
   groups: string[];
   bucketDurationMs: number;
 }) {
@@ -154,7 +154,7 @@ function HistogramTooltipContent({
   );
 }
 
-export function Histogram(props: HistogramProps) {
+export function TimeHistogram(props: TimeHistogramProps) {
   const { items, variant = "grouped", maxGroupsPerBucket = 8, height = 160, className } = props;
   const axisTick = { fill: "var(--panel-foreground-muted)" };
 
@@ -209,7 +209,7 @@ export function Histogram(props: HistogramProps) {
 
   return (
     <div
-      className={cn("histogram-root rounded-lg border border-panel-border bg-panel p-3", className)}
+      className={cn("time-histogram-root rounded-lg border border-panel-border bg-panel p-3", className)}
       style={{ height }}
     >
       {/*
@@ -219,12 +219,12 @@ export function Histogram(props: HistogramProps) {
         without re-rendering the (potentially hundreds of) bar rectangles on every mouse move.
       */}
       <style>
-        {`.histogram-root .recharts-bar { transition: opacity 0.15s ease; }
-.histogram-root .recharts-legend-item { cursor: default; }
+        {`.time-histogram-root .recharts-bar { transition: opacity 0.15s ease; }
+.time-histogram-root .recharts-legend-item { cursor: default; }
 ${data.groups
   .map(
     (_, index) =>
-      `.histogram-root:has(.legend-item-${index}:hover) .recharts-bar:not(.histogram-bar-${index}) { opacity: 0.25; }`,
+      `.time-histogram-root:has(.legend-item-${index}:hover) .recharts-bar:not(.time-histogram-bar-${index}) { opacity: 0.25; }`,
   )
   .join("\n")}`}
       </style>
@@ -250,7 +250,7 @@ ${data.groups
           />
           <YAxis allowDecimals={false} fontSize={12} width={32} tick={axisTick} stroke="var(--panel-border)" />
           <Tooltip
-            content={<HistogramTooltipContent groups={data.groups} bucketDurationMs={data.bucketDurationMs} />}
+            content={<TimeHistogramTooltipContent groups={data.groups} bucketDurationMs={data.bucketDurationMs} />}
             cursor={{ fill: "var(--panel-header-background)" }}
             wrapperStyle={TOOLTIP_WRAPPER_STYLE}
           />
@@ -266,8 +266,8 @@ ${data.groups
           {data.groups.map((groupKey, index) => (
             <Bar
               key={groupKey}
-              className={`histogram-bar-${index}`}
-              dataKey={(bucket: HistogramBucket) => bucket.counts[groupKey] ?? 0}
+              className={`time-histogram-bar-${index}`}
+              dataKey={(bucket: TimeHistogramBucket) => bucket.counts[groupKey] ?? 0}
               name={groupKey}
               stackId="series"
               fill={DEFAULT_GROUP_COLORS[index % DEFAULT_GROUP_COLORS.length]}

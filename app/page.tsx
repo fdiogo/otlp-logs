@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Group, List } from "lucide-react";
 import { logsQuery } from "@/queries/logsQuery";
-import { Histogram } from "@/design-system/Histogram";
+import { TimeHistogram } from "@/design-system/TimeHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ToggleGroup } from "@/design-system/ToggleGroup";
 import { Skeleton } from "@/design-system/Skeleton";
@@ -113,7 +113,7 @@ function HomeContent() {
           ))}
         </div>
       ) : (
-        <Histogram items={histogramItems} variant={isGrouped ? "grouped" : "flat"} className="mb-4" />
+        <TimeHistogram items={histogramItems} variant={isGrouped ? "grouped" : "flat"} className="mb-4" />
       )}
 
       {isPending ? (
