@@ -29,11 +29,17 @@ type Row =
   | { type: "log"; rowKey: string; item: Item }
   | { type: "detail"; rowKey: string; item: Item; expanded: boolean };
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
 function renderValue(value: unknown): string {
   if (value === undefined || value === null) return "";
   if (typeof value === "string") return value;
   if (typeof value === "boolean" || typeof value === "number") return String(value);
-  if (value instanceof Uint8Array) return Buffer.from(value).toString("base64");
+  if (value instanceof Uint8Array) return `base64:${bytesToBase64(value)}`;
   if (Array.isArray(value)) return `[${value.map(renderValue).join(", ")}]`;
   if (typeof value === "object") {
     return `{${Object.entries(value)
@@ -63,7 +69,7 @@ function JsonNode(props: { value: unknown; indent: number; compact?: boolean }) 
     return <span className="text-amber-700">{String(value)}</span>;
   }
   if (value instanceof Uint8Array) {
-    return <span className="text-purple-700">{JSON.stringify(Buffer.from(value).toString("base64"))}</span>;
+    return <span className="text-purple-700">{`base64:${JSON.stringify(bytesToBase64(value))}`}</span>;
   }
   if (Array.isArray(value)) {
     if (value.length === 0) return <span>[]</span>;
@@ -138,29 +144,54 @@ function JsonNode(props: { value: unknown; indent: number; compact?: boolean }) 
   );
 }
 
+type ValueKind = "null" | "string" | "number" | "boolean" | "bytes" | "array" | "object";
+
+const VALUE_KIND_LABEL: Record<ValueKind, string> = {
+  null: "null",
+  string: "string",
+  number: "number",
+  boolean: "boolean",
+  bytes: "bytes",
+  array: "array",
+  object: "object",
+};
+
+function valueKind(value: unknown): ValueKind {
+  if (value === undefined || value === null) return "null";
+  if (typeof value === "string") return "string";
+  if (typeof value === "number") return "number";
+  if (typeof value === "boolean") return "boolean";
+  if (value instanceof Uint8Array) return "bytes";
+  if (Array.isArray(value)) return "array";
+  return "object";
+}
+
 /** Type-aware rendering of a body/attribute value: JSON with syntax highlighting for arrays/objects, code font for scalars. */
 function ValueDisplay(props: { value: unknown }) {
   const { value } = props;
-  if (value === undefined || value === null) {
-    return <span className="text-xs italic text-panel-subtle">null</span>;
+  switch (valueKind(value)) {
+    case "null":
+      return <span className="text-xs italic text-panel-subtle">null</span>;
+    case "string":
+      return <p className="whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{value as string}</p>;
+    case "number":
+      return <p className="font-mono text-xs text-blue-700">{value as number}</p>;
+    case "boolean":
+      return <p className="font-mono text-xs text-amber-700">{String(value)}</p>;
+    case "bytes":
+      return (
+        <p className="whitespace-pre-wrap break-all font-mono text-xs text-purple-700">
+          <span className="text-panel-subtle">base64:</span>
+          {bytesToBase64(value as Uint8Array)}
+        </p>
+      );
+    default:
+      return (
+        <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-panel-muted">
+          <JsonNode value={value} indent={0} />
+        </pre>
+      );
   }
-  if (typeof value === "string") {
-    return <p className="whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{value}</p>;
-  }
-  if (typeof value === "number") {
-    return <p className="font-mono text-xs text-blue-700">{value}</p>;
-  }
-  if (typeof value === "boolean") {
-    return <p className="font-mono text-xs text-amber-700">{String(value)}</p>;
-  }
-  if (value instanceof Uint8Array) {
-    return <p className="whitespace-pre-wrap break-all font-mono text-xs text-purple-700">{Buffer.from(value).toString("base64")}</p>;
-  }
-  return (
-    <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-xs text-panel-muted">
-      <JsonNode value={value} indent={0} />
-    </pre>
-  );
 }
 
 function severityRank(item: Item): number {
@@ -252,7 +283,12 @@ const DetailRow = memo(function DetailRow(props: {
                 <div className="mt-2 flex flex-col gap-2">
                   {item.attributes.map((attribute, index) => (
                     <div key={attribute.key ?? index}>
-                      <div className="font-mono text-xs text-panel-subtle">{attribute.key}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs text-panel-subtle">{attribute.key}</span>
+                        <Badge tone="neutral" className="px-1.5 py-0 text-[10px] font-normal uppercase tracking-wide">
+                          {VALUE_KIND_LABEL[valueKind(attribute.value)]}
+                        </Badge>
+                      </div>
                       <ValueDisplay value={attribute.value} />
                     </div>
                   ))}

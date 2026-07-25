@@ -87,3 +87,36 @@ export const GroupedExpanded: Story = {
     await expect(canvas.queryByText("user logged in")).not.toBeInTheDocument();
   },
 };
+
+// One attribute per supported value type, showing the type label rendered next to each key.
+export const AllValueTypes: Story = {
+  args: {
+    items: [
+      logItem({
+        groupKey: "demo",
+        body: "attribute value types",
+        attributes: [
+          { key: "example.string", value: "hello world" },
+          { key: "example.number", value: 42.5 },
+          { key: "example.boolean", value: true },
+          { key: "example.bytes", value: new Uint8Array([72, 101, 108, 108, 111]) },
+          { key: "example.array", value: ["a", "b", "c"] },
+          { key: "example.object", value: { nested: { key: "value" }, count: 2 } },
+          { key: "example.null", value: null },
+        ],
+      }),
+    ],
+    variant: "flat",
+  },
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByText(/attribute value types/));
+    await expect(await canvas.findByText("example.string")).toBeVisible();
+    await expect(canvas.getByText("string")).toBeVisible();
+    await expect(canvas.getByText("number")).toBeVisible();
+    await expect(canvas.getByText("boolean")).toBeVisible();
+    await expect(canvas.getByText("bytes")).toBeVisible();
+    await expect(canvas.getByText("array")).toBeVisible();
+    await expect(canvas.getByText("object")).toBeVisible();
+    await expect(canvas.getAllByText("null")).toHaveLength(2);
+  },
+};
