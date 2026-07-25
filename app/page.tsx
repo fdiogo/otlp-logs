@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo } from "react";
+import { Suspense, useDeferredValue, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Group, List } from "lucide-react";
@@ -21,7 +21,19 @@ export default function Home() {
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const isGrouped = searchParams.has("groupBy");
+  const groupByParam = searchParams.has("groupBy");
+
+  // Local state so the toggle flips synchronously; router.push's navigation is itself a
+  // React Transition, so isGrouped would otherwise lag behind on the same low-priority lane
+  // as the heavy re-render we're trying to deprioritize. Resynced from the URL during render
+  // (rather than an effect) when it changes externally, e.g. back/forward navigation.
+  const [isGrouped, setIsGrouped] = useState(groupByParam);
+  const [syncedGroupByParam, setSyncedGroupByParam] = useState(groupByParam);
+  if (groupByParam !== syncedGroupByParam) {
+    setSyncedGroupByParam(groupByParam);
+    setIsGrouped(groupByParam);
+  }
+  const deferredIsGrouped = useDeferredValue(isGrouped);
 
   const { data, isPending } = useQuery(logsQuery);
 
@@ -112,6 +124,8 @@ function HomeContent() {
           <ToggleGroup
             value={isGrouped ? "grouped" : "flat"}
             onChange={(value: "flat" | "grouped") => {
+              setIsGrouped(value === "grouped");
+
               const nextParams = new URLSearchParams(searchParams.toString());
               if (value === "grouped") {
                 nextParams.set("groupBy", "service");
@@ -135,7 +149,12 @@ function HomeContent() {
           ))}
         </div>
       ) : (
-        <TimeHistogram items={histogramItems} variant={isGrouped ? "grouped" : "flat"} height={224} className="mb-4 shrink-0" />
+        <TimeHistogram
+          items={histogramItems}
+          variant={deferredIsGrouped ? "grouped" : "flat"}
+          height={224}
+          className={`mb-4 shrink-0 transition-opacity ${isGrouped !== deferredIsGrouped ? "opacity-60" : ""}`}
+        />
       )}
 
       {isPending ? (
@@ -156,7 +175,11 @@ function HomeContent() {
           ))}
         </div>
       ) : (
-        <LogRecordsTable items={logItems} groupBy={isGrouped ? "resource" : null} className="min-h-100 flex-1" />
+        <LogRecordsTable
+          items={logItems}
+          groupBy={deferredIsGrouped ? "resource" : null}
+          className={`min-h-100 flex-1 transition-opacity ${isGrouped !== deferredIsGrouped ? "opacity-60" : ""}`}
+        />
       )}
     </div>
   );
