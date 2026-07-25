@@ -66,8 +66,12 @@ assumptions above stop holding.
   `useSearchParams`-driven view state and local expand state) is a genuine
   architectural lift, not a quick win — real candidate for scope creep on a
   focused task.
-- **Windowing the outer Grouped View list**: `ServiceGroupSection` renders
-  one full `LogRecordsTable` (with its own internal row virtualizer) per
-  Service Group, and the *list of sections* itself isn't windowed — only
-  rows within each section are. Fine at 10 groups; would need windowing at
-  the section level too if Service Group counts ever grow into the hundreds.
+- **Per-group virtualization ceiling**: Grouped View already uses a single
+  flattened `useVirtualizer` across all rows (see
+  [ADR 0003](adr/0003-grouped-view-single-virtualizer.md)), so the number of
+  Service Groups doesn't multiply the number of scroll containers or
+  virtualizer instances — that scaling concern is resolved. What's still
+  bounded by dataset size is collapse state and the flattened row-list
+  construction happening in a single `useMemo` pass; fine at today's ~10
+  groups / ~300 records, worth another look if Service Group counts grow
+  into the hundreds.

@@ -1,106 +1,43 @@
 # OTLP Log Viewer
 
-## Quick Start
+A log viewer for OTLP log records — flat or grouped by service, with a time histogram. Built for a take-home coding challenge; this README is written for the interviewers reviewing it.
 
-| | |
-|---|---|
-| **Time** | 3-4 hours (submit what you have) |
-| **Stack** | React, TypeScript, Next.js (App Router) |
-| **Submit** | Public GitHub repo + README |
-| **Bonus** | Vercel deployment |
+**Live demo:** https://otlp-logs.vercel.app/
 
-> **Create a NEW repository.** Do not extend this codebase.
+## Quick start
 
----
-
-## Part 1: Coding Assignment
-
-### Scenario
-
-Your team needs a web application to visualize [OTLP log records](https://opentelemetry.io/docs/concepts/signals/logs/) from a backend service. Engineers should be able to quickly scan logs, drill into details, and understand log distribution patterns across services.
-
-### Your Task
-
-Build a log viewer that fetches data from the provided API endpoint and addresses these requirements:
-
-1. **Log List View** — Display logs in a table (Severity, Time, Body) with expandable rows showing all attributes
-2. **TimeHistogram** — Visualize log distribution over time (X: Time, Y: Count)
-3. **Group by Service** — Add a toggle that switches between flat list view and grouped view (organized by parent resource with collapsible groups)
-
-### What We're Looking For
-
-- Data fetching and state management patterns
-- Data transformation for nested OTLP types
-- Component architecture and TypeScript usage
-- UI/UX consistent with observability domain conventions
-- Visual polish and usability — with modern tooling the bar for a well-crafted interface is higher than ever
-- Production-ready code organization
-
-> The requirements above are a starting point. We love seeing what engineers choose to do when given room to make something their own.
-
----
-
-## Part 2: Interview Discussion (Do Not Code)
-
-### Scenario
-
-Users of the log viewer have started asking for filtering capabilities. The product brief is intentionally vague:
-
-> "We need a way for users to filter logs and share interesting findings with teammates."
-
-### Your Task
-
-As the Senior Product Engineer (Frontend), you're asked to help shape the approach before implementation begins.
-
-During the interview, walk us through:
-
-1. **Clarifying the problem** — What questions would you ask product, backend, and users?
-2. **Structuring the solution** — How would you design the UI and frontend architecture?
-3. **Identifying trade-offs** — What key decisions would you make, and what are the pros and cons?
-
-### What We're Looking For
-
-- Ability to clarify ambiguity in product requirements
-- Structural thinking about UI architecture, components, and data flow
-- Articulating trade-offs (complexity vs. maintainability, performance vs. UX)
-- Bonus: Observability-aware thinking
-
----
-
-## API Reference
-
-**Endpoint:**
-```
-GET https://take-home-assignment-otlp-logs-api.vercel.app/api/v2/logs
+```bash
+npm install
+npm run dev       # app at http://localhost:3000
+npm run storybook # component catalog at http://localhost:6006
 ```
 
-**TypeScript Types:**
+## Assumptions & scope decisions
 
-The response conforms to the [OTLP Logs protobuf schema](https://github.com/open-telemetry/opentelemetry-proto/blob/main/opentelemetry/proto/logs/v1/logs.proto).
-You can use it to generate the necessary types
+- **Shipped only what was asked.** The brief's three requirements (log table, time histogram, group-by-service toggle) are implemented; I deliberately avoided inventing adjacent features (filtering, search, saved views) that weren't requested — some of that overlaps with the Part 2 discussion anyway.
+- **Code quality was spent on organization and seams, not internals.** Time went into component boundaries and interfaces (`LogRecordsTable`, `TimeHistogram`, the design-system primitives) rather than polishing every line inside them. Given more time, the internals are where I'd go next.
+- **The API is used as-is, unmodified.** No proxy, no server-side reshaping. If I owned the backend I'd want pagination and/or streaming instead of one large payload — see "Deliberately not done" below.
+- **Scope, not time, was the constraint I optimized for.** I stayed close to the brief's requirements rather than chasing extra polish for its own sake — the discipline was about what to build, not a clock.
 
-**Data Structure:**
-```
-IExportLogsServiceRequest
-└── resourceLogs[]
-    ├── resource.attributes[]
-    │   ├── service.name
-    │   ├── service.namespace
-    │   └── service.version
-    └── scopeLogs[]
-        └── logRecords[]
-            ├── timeUnixNano
-            ├── severityText / severityNumber
-            ├── body
-            └── attributes[]
-```
+## Deliberately not done
 
-> The API generates random mock data on each request.
+These are things I considered and consciously deferred, not things I missed:
 
----
+- **API-level changes** — pagination, streaming, or server-side filtering on the `logs` endpoint. I used it exactly as given; a real backend would need these before the dataset grows.
+- **Histogram performance at larger scale** — bucketing currently scans every log record client-side. Fine at today's dataset size, but it won't scale indefinitely; the real fix is moving bucket aggregation to the API. Details in [`docs/perf-notes.md`](docs/perf-notes.md).
+- **Error-state UI** — the query handles the loading state but not a failed fetch; there's no visible error UI if the request fails.
+- **Automated tests** — no `*.test.ts` files. Storybook stories exist for the key components (with `@storybook/addon-vitest` wired up), but there's no dedicated unit/integration test suite.
 
-## References
+## Further reading
 
-- [OpenTelemetry Logs Concepts](https://opentelemetry.io/docs/concepts/signals/logs/)
-- [OTLP Protocol](https://github.com/open-telemetry/opentelemetry-proto)
-- [OTLP Logs Example JSON](https://github.com/open-telemetry/opentelemetry-proto/blob/main/examples/logs.json)
+Design decisions and domain vocabulary are written down rather than left implicit:
+
+- [`CONTEXT.md`](CONTEXT.md) — domain glossary (Flat View, Grouped View, Service Group, `unknown_service`, Top-8 + Other cap)
+- [`docs/adr/0001-service-group-key.md`](docs/adr/0001-service-group-key.md) — why grouping keys on `service.namespace` + `service.name`
+- [`docs/adr/0002-histogram-top-n-cap.md`](docs/adr/0002-histogram-top-n-cap.md) — why the histogram caps stacked segments at the top 8 services + "Other"
+- [`docs/adr/0003-grouped-view-single-virtualizer.md`](docs/adr/0003-grouped-view-single-virtualizer.md) — why Grouped View is one flattened virtualized list, not one table per service
+- [`docs/perf-notes.md`](docs/perf-notes.md) — what's been optimized, what's been consciously left alone, and what would need to change at larger scale
+
+## Original assignment
+
+This repo was built from a take-home brief (log viewer + a "do not code" filtering/sharing design discussion). The original spec has been removed from this README since it's the prompt, not the deliverable — happy to share it again on request.
