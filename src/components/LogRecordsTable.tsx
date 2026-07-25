@@ -215,15 +215,38 @@ function severityTone(item: Item): "error" | "warn" | "neutral" | "info" {
   return "info";
 }
 
+const DETAIL_TONE_BORDER: Record<ReturnType<typeof severityTone>, string> = {
+  error: "border-l-red-400",
+  warn: "border-l-amber-400",
+  neutral: "border-l-panel-border",
+  info: "border-l-blue-400",
+};
+
+function ExpandChevron(props: { expanded: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="currentColor"
+      className={cn(
+        "size-3 shrink-0 text-panel-subtle transition-transform duration-150",
+        props.expanded && "rotate-90",
+      )}
+    >
+      <path d="M5 3l6 5-6 5V3z" />
+    </svg>
+  );
+}
+
 const LogRow = memo(function LogRow(props: {
   item: Item;
   grouped: boolean;
   rowKey: string;
   dataIndex: number;
+  expanded: boolean;
   measureRef: (node: Element | null) => void;
   onToggle: (rowKey: string) => void;
 }) {
-  const { item, grouped, rowKey, dataIndex, measureRef, onToggle } = props;
+  const { item, grouped, rowKey, dataIndex, expanded, measureRef, onToggle } = props;
   const tone = severityTone(item);
   const body = renderValue(item.body);
   const isJsonBody = typeof item.body === "object" && item.body !== null && !(item.body instanceof Uint8Array);
@@ -232,15 +255,20 @@ const LogRow = memo(function LogRow(props: {
       ref={measureRef}
       data-index={dataIndex}
       onClick={() => onToggle(rowKey)}
-      className="cursor-pointer hover:bg-panel-header"
+      className={cn("cursor-pointer hover:bg-panel-header", expanded && "bg-panel-header")}
     >
-      {!grouped && <Table.Cell className="w-px whitespace-nowrap font-medium text-panel-muted">{item.groupKey}</Table.Cell>}
-      <Table.Cell className="w-px whitespace-nowrap">
-        <Badge tone={tone}>{severityLabel(item)}</Badge>
+      <Table.Cell className={cn("w-px whitespace-nowrap border-l-2", DETAIL_TONE_BORDER[tone])}>
+        <span className="flex items-center gap-1.5">
+          <ExpandChevron expanded={expanded} />
+          <Badge tone={tone}>{severityLabel(item)}</Badge>
+        </span>
       </Table.Cell>
       <Table.Cell className="w-px whitespace-nowrap font-mono text-xs text-panel-muted">
         <Time unixNano={item.timeUnixNano} />
       </Table.Cell>
+      {!grouped && (
+        <Table.Cell className="w-px whitespace-nowrap font-medium text-panel-muted">{item.groupKey}</Table.Cell>
+      )}
       <Table.Cell>
         <p title={body} className={`line-clamp-2 wrap-break-word ${isJsonBody ? "font-mono text-xs" : ""}`}>
           {isJsonBody ? <JsonNode value={item.body} indent={0} compact /> : body}
@@ -258,13 +286,21 @@ const DetailRow = memo(function DetailRow(props: {
   measureRef: (node: Element | null) => void;
 }) {
   const { item, columnCount, dataIndex, expanded, measureRef } = props;
+  const tone = severityTone(item);
   // Kept mounted (with content toggled inside) rather than returning null when collapsed: the
   // virtualizer's ResizeObserver only re-measures a row while its element stays connected, so
   // unmounting the row instead of shrinking its content leaves the last-measured (expanded)
   // height stuck in the size cache, showing as blank space below.
   return (
     <Table.Row ref={measureRef} data-index={dataIndex}>
-      <Table.Cell colSpan={columnCount} className={expanded ? "border-panel-border bg-panel-header" : "border-none p-0!"}>
+      <Table.Cell
+        colSpan={columnCount}
+        className={
+          expanded
+            ? cn("border-panel-border-subtle border-l-2 bg-panel-header/40 p-3", DETAIL_TONE_BORDER[tone])
+            : "border-none p-0!"
+        }
+      >
         {expanded && (
           <>
             <div className="rounded-lg border border-panel-border bg-panel p-3">
@@ -399,9 +435,9 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
       <Table>
         <Table.Header className="sticky top-0 z-10 bg-panel-header">
           <Table.Row>
-            {!grouped && <Table.Head className="w-px min-w-50 whitespace-nowrap">Resource</Table.Head>}
             <Table.Head className="w-px min-w-30 whitespace-nowrap">Severity</Table.Head>
             <Table.Head className="w-px min-w-44 whitespace-nowrap">Time</Table.Head>
+            {!grouped && <Table.Head className="w-px min-w-50 whitespace-nowrap">Resource</Table.Head>}
             <Table.Head>Body</Table.Head>
           </Table.Row>
         </Table.Header>
@@ -451,6 +487,7 @@ export function LogRecordsTable(props: LogRecordsTableProps) {
                 grouped={grouped}
                 rowKey={row.rowKey}
                 dataIndex={virtualRow.index}
+                expanded={expanded.has(row.rowKey)}
                 measureRef={rowVirtualizer.measureElement}
                 onToggle={toggleExpanded}
               />
