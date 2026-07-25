@@ -4,7 +4,7 @@ import { Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Group, List } from "lucide-react";
-import { logsQuery } from "@/queries/logsQuery";
+import { logsQuery, type AnyValue } from "@/queries/logsQuery";
 import { TimeHistogram } from "@/design-system/TimeHistogram";
 import { LogRecordsTable } from "@/components/LogRecordsTable";
 import { ToggleGroup } from "@/design-system/ToggleGroup";
@@ -65,21 +65,33 @@ function HomeContent() {
     [sortedLogRecordsWithLabel],
   );
 
-  const logItems = useMemo(
-    () =>
-      sortedLogRecordsWithLabel.map((record) => ({
-        groupKey: record.resourceLabel,
-        severityNumber: record.severityNumber,
-        severityText: record.severityText,
-        timeUnixNano: record.timeUnixNano ?? "0",
-        body: record.body,
-        attributes: (record.attributes ?? []).map((attribute) => ({
-          key: attribute.key ?? "",
-          value: attribute.value,
-        })),
+  const logItems = useMemo(() => {
+    function toNativeValue(value: AnyValue | undefined): unknown {
+      if (value === undefined) return undefined;
+      if (value.stringValue !== undefined) return value.stringValue;
+      if (value.boolValue !== undefined) return value.boolValue;
+      if (value.intValue !== undefined) return value.intValue;
+      if (value.doubleValue !== undefined) return value.doubleValue;
+      if (value.bytesValue !== undefined) return value.bytesValue;
+      if (value.arrayValue !== undefined) return value.arrayValue.values?.map(toNativeValue) ?? [];
+      if (value.kvlistValue !== undefined) {
+        return Object.fromEntries(value.kvlistValue.values?.map((kv) => [kv.key, toNativeValue(kv.value)]) ?? []);
+      }
+      return undefined;
+    }
+
+    return sortedLogRecordsWithLabel.map((record) => ({
+      groupKey: record.resourceLabel,
+      severityNumber: record.severityNumber,
+      severityText: record.severityText,
+      timeUnixNano: record.timeUnixNano ?? "0",
+      body: toNativeValue(record.body),
+      attributes: (record.attributes ?? []).map((attribute) => ({
+        key: attribute.key ?? "",
+        value: toNativeValue(attribute.value),
       })),
-    [sortedLogRecordsWithLabel],
-  );
+    }));
+  }, [sortedLogRecordsWithLabel]);
 
   return (
     <div className="h-screen p-4">

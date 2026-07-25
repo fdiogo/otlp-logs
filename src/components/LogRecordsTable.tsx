@@ -2,7 +2,6 @@
 
 import { memo, useCallback, useMemo, useRef, useState } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import type { AnyValue } from "@/queries/logsQuery";
 import { Time } from "@/design-system/Time";
 import { Badge } from "@/design-system/Badge";
 import { Table } from "@/design-system/Table";
@@ -14,8 +13,8 @@ interface LogRecordsTableProps {
     severityNumber?: number;
     severityText?: string;
     timeUnixNano: string;
-    body: AnyValue | undefined;
-    attributes: { key: string; value: AnyValue | undefined }[];
+    body: unknown;
+    attributes: { key: string; value: unknown }[];
   }[];
   /** `"grouped"` partitions rows by `groupKey` under collapsible headers. `"flat"` renders a single row list. */
   variant: "flat" | "grouped";
@@ -23,26 +22,24 @@ interface LogRecordsTableProps {
 
 type Item = LogRecordsTableProps["items"][number];
 
-function renderAnyValue(value: AnyValue | undefined): string {
-  if (value === undefined) return "";
-  if (value.stringValue !== undefined) return value.stringValue;
-  if (value.boolValue !== undefined) return String(value.boolValue);
-  if (value.intValue !== undefined) return value.intValue;
-  if (value.doubleValue !== undefined) return String(value.doubleValue);
-  if (value.bytesValue !== undefined) return Buffer.from(value.bytesValue).toString("base64");
-  if (value.arrayValue !== undefined) {
-    return `[${value.arrayValue.values?.map(renderAnyValue).join(", ") ?? ""}]`;
-  }
-  if (value.kvlistValue !== undefined) {
-    return `{${value.kvlistValue.values?.map((kv) => `${kv.key}: ${renderAnyValue(kv.value)}`).join(", ") ?? ""}}`;
-  }
-  return "";
-}
-
 type Row =
   | { type: "header"; rowKey: string; group: { key: string; items: Item[] }; collapsed: boolean }
   | { type: "log"; rowKey: string; item: Item }
   | { type: "detail"; rowKey: string; item: Item; expanded: boolean };
+
+function renderValue(value: unknown): string {
+  if (value === undefined || value === null) return "";
+  if (typeof value === "string") return value;
+  if (typeof value === "boolean" || typeof value === "number") return String(value);
+  if (value instanceof Uint8Array) return Buffer.from(value).toString("base64");
+  if (Array.isArray(value)) return `[${value.map(renderValue).join(", ")}]`;
+  if (typeof value === "object") {
+    return `{${Object.entries(value)
+      .map(([key, entry]) => `${key}: ${renderValue(entry)}`)
+      .join(", ")}}`;
+  }
+  return "";
+}
 
 function severityRank(item: Item): number {
   if (typeof item.severityNumber === "number") return item.severityNumber;
@@ -75,7 +72,7 @@ const LogRow = memo(function LogRow(props: {
 }) {
   const { item, grouped, rowKey, dataIndex, measureRef, onToggle } = props;
   const tone = severityTone(item);
-  const body = renderAnyValue(item.body);
+  const body = renderValue(item.body);
   return (
     <Table.Row
       ref={measureRef}
@@ -119,7 +116,7 @@ const DetailRow = memo(function DetailRow(props: {
             <div className="rounded-lg border border-panel-border bg-panel p-3">
               <h4 className="text-xs font-medium text-panel-muted">Body</h4>
               <hr className="border-panel-border-subtle my-1" />
-              <p className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{renderAnyValue(item.body)}</p>
+              <p className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-panel-muted">{renderValue(item.body)}</p>
             </div>
             <div className="mt-2 rounded-lg border border-panel-border bg-panel p-3">
               <h4 className="text-xs font-medium text-panel-muted">Attributes</h4>
@@ -131,7 +128,7 @@ const DetailRow = memo(function DetailRow(props: {
                   {item.attributes.map((attribute, index) => (
                     <div key={attribute.key ?? index} className="font-mono text-xs">
                       <div className="text-panel-subtle">{attribute.key}</div>
-                      <div className="whitespace-pre-wrap break-all text-panel-muted">{renderAnyValue(attribute.value)}</div>
+                      <div className="whitespace-pre-wrap break-all text-panel-muted">{renderValue(attribute.value)}</div>
                     </div>
                   ))}
                 </div>

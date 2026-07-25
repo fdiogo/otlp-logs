@@ -10,7 +10,7 @@ function logItem(overrides: Partial<LogItem>): LogItem {
     groupKey: "checkout",
     timeUnixNano: "1712000000000000000",
     severityText: "INFO",
-    body: { stringValue: "request completed" },
+    body: "request completed",
     attributes: [],
     ...overrides,
   };
@@ -20,25 +20,25 @@ const items: LogItem[] = [
   logItem({
     groupKey: "auth",
     severityText: "INFO",
-    body: { stringValue: "user logged in" },
-    attributes: [{ key: "user.id", value: { stringValue: "42" } }],
+    body: "user logged in",
+    attributes: [{ key: "user.id", value: "42" }],
   }),
   logItem({
     groupKey: "checkout",
     severityText: "ERROR",
-    body: { stringValue: "payment failed" },
+    body: "payment failed",
     attributes: [
-      { key: "order.id", value: { stringValue: "ord_123" } },
-      { key: "amount.cents", value: { stringValue: "4999" } },
-      { key: "retryable", value: { boolValue: true } },
-      { key: "latency.ms", value: { doubleValue: 812.4 } },
-      { key: "gateway.response", value: { stringValue: "{code: card_declined}" } },
+      { key: "order.id", value: "ord_123" },
+      { key: "amount.cents", value: "4999" },
+      { key: "retryable", value: "true" },
+      { key: "latency.ms", value: "812.4" },
+      { key: "gateway.response", value: "{code: card_declined}" },
     ],
   }),
   logItem({
     groupKey: "checkout",
     severityText: "WARN",
-    body: { stringValue: "retrying request" },
+    body: "retrying request",
   }),
 ];
 
